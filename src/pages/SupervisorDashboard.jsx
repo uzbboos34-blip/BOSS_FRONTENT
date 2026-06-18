@@ -42,7 +42,7 @@ const scanAnimation = keyframes`
 
 export default function SupervisorDashboard() {
   const [tab, setTab] = useState(0); // 0 = Scanner, 1 = Journal, 2 = Stats
-  const [scanMode, setScanMode] = useState('camera'); // 'camera', 'hardware', 'manual'
+  const [scanMode, setScanMode] = useState('camera'); // 'camera', 'manual'
   const [session, setSession] = useState(1);
   const [status, setStatus] = useState('PRESENT');
   const [qrCode, setQrCode] = useState('');
@@ -51,29 +51,7 @@ export default function SupervisorDashboard() {
   const [submittingScan, setSubmittingScan] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const inputRef = useRef(null);
   const html5QrCodeRef = useRef(null);
-
-  // Focus hidden input only in hardware mode to avoid keyboard popups
-  useEffect(() => {
-    const handleGlobalClick = () => {
-      if (tab === 0 && scanMode === 'hardware' && inputRef.current) {
-        inputRef.current.focus();
-      }
-    };
-
-    if (tab === 0 && scanMode === 'hardware') {
-      document.addEventListener('click', handleGlobalClick);
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 150);
-    }
-    return () => {
-      document.removeEventListener('click', handleGlobalClick);
-    };
-  }, [tab, scanMode]);
 
   // Live camera scan using html5-qrcode
   useEffect(() => {
@@ -230,25 +208,6 @@ export default function SupervisorDashboard() {
       setErrorMsg(err.response?.data?.message || 'Не удалось отправить посещение');
     } finally {
       setSubmittingScan(false);
-      // Auto-refocus the text input field
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 150);
-    }
-  };
-
-  const handleInputChange = (e) => {
-    const val = e.target.value;
-    setQrCode(val);
-
-    // If the input value contains a colon, split it, take the first part and auto submit immediately
-    if (val.includes(':')) {
-      const prefix = val.split(':')[0].trim();
-      if (prefix) {
-        autoSubmitScan(prefix);
-      }
     }
   };
 
@@ -261,11 +220,6 @@ export default function SupervisorDashboard() {
     if (!finalCode) {
       setErrorMsg('Пожалуйста, введите QR-код / Паспорт');
       setScanResult(null);
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 150);
       return;
     }
     await autoSubmitScan(finalCode);
@@ -394,23 +348,6 @@ export default function SupervisorDashboard() {
               </Button>
               <Button
                 fullWidth
-                onClick={() => { setScanMode('hardware'); setScanResult(null); setErrorMsg(''); setQrCode(''); }}
-                sx={{
-                  textTransform: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  py: 0.8,
-                  backgroundColor: scanMode === 'hardware' ? '#fff' : 'transparent',
-                  color: scanMode === 'hardware' ? '#7b61ff' : '#64748b',
-                  boxShadow: scanMode === 'hardware' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-                  '&:hover': { backgroundColor: scanMode === 'hardware' ? '#fff' : 'transparent' }
-                }}
-              >
-                Сканер (Без клав.)
-              </Button>
-              <Button
-                fullWidth
                 onClick={() => { setScanMode('manual'); setScanResult(null); setErrorMsg(''); setQrCode(''); }}
                 sx={{
                   textTransform: 'none',
@@ -500,77 +437,6 @@ export default function SupervisorDashboard() {
               </Box>
             )}
 
-            {/* ─── Mode 2: Hardware Laser Scanner ─── */}
-            {scanMode === 'hardware' && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
-                  <Paper elevation={0} sx={{
-                    position: 'relative',
-                    width: 280,
-                    height: 280,
-                    borderRadius: '24px',
-                    border: '3px solid #64748b',
-                    boxShadow: '0 0 30px rgba(100,116,139,0.3)',
-                    backgroundColor: '#0f172a',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    {/* Viewfinder brackets */}
-                    <Box sx={{
-                      width: 170,
-                      height: 170,
-                      border: '2px dashed rgba(255, 255, 255, 0.3)',
-                      borderRadius: '20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <QrCodeScannerIcon sx={{ fontSize: 76, color: 'rgba(255,255,255,0.7)' }} />
-                    </Box>
-                    <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 650, mt: 2.5, px: 2, textAlign: 'center' }}>
-                      Используйте внешний/аппаратный лазерный сканер
-                    </Typography>
-                  </Paper>
-                </Box>
-
-                {/* Hardware Scanner Status Indicator */}
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    borderRadius: '16px',
-                    border: '1px solid #e2e8f0',
-                    backgroundColor: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 1.5,
-                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
-                  }}
-                >
-                  <Box sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    backgroundColor: '#10b981',
-                    boxShadow: '0 0 10px #10b981',
-                    animation: 'pulse 2s infinite',
-                    '@keyframes pulse': {
-                      '0%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.7)' },
-                      '70%': { transform: 'scale(1)', boxShadow: '0 0 0 10px rgba(16, 185, 129, 0)' },
-                      '100%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(16, 185, 129, 0)' }
-                    }
-                  }} />
-                  <Typography sx={{ fontWeight: 750, fontSize: '0.82rem', color: '#1e293b' }}>
-                    Готов к приему кодов без клавиатуры
-                  </Typography>
-                </Paper>
-              </Box>
-            )}
-
             {/* ─── Mode 3: Manual Text Input ─── */}
             {scanMode === 'manual' && (
               <Paper elevation={0} sx={{
@@ -634,65 +500,6 @@ export default function SupervisorDashboard() {
                 {errorMsg}
               </Alert>
             )}
-
-            {/* Hidden Scanner Form to receive hardware scans */}
-            <Box
-              component="form"
-              onSubmit={handleScanSubmit}
-              sx={{
-                position: 'absolute',
-                left: '-9999px',
-                top: '-9999px',
-                opacity: 0,
-                width: 0,
-                height: 0,
-                overflow: 'hidden'
-              }}
-            >
-              <input
-                ref={inputRef}
-                type="text"
-                value={qrCode}
-                onChange={handleInputChange}
-                inputMode={scanMode === 'hardware' ? 'none' : 'text'}
-                autoFocus
-              />
-            </Box>
-
-            {/* Scanner Status Indicator */}
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2.5,
-                borderRadius: '20px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1.5,
-                mt: 1,
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)'
-              }}
-            >
-              {/* Pulsing Green Indicator */}
-              <Box sx={{
-                width: 12,
-                height: 12,
-                borderRadius: '50%',
-                backgroundColor: '#10b981',
-                boxShadow: '0 0 10px #10b981',
-                animation: 'pulse 2s infinite',
-                '@keyframes pulse': {
-                  '0%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.7)' },
-                  '70%': { transform: 'scale(1)', boxShadow: '0 0 0 10px rgba(16, 185, 129, 0)' },
-                  '100%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(16, 185, 129, 0)' }
-                }
-              }} />
-              <Typography sx={{ fontWeight: 750, fontSize: '0.85rem', color: '#1e293b' }}>
-                Сканер готов к автоматическому приему кодов
-              </Typography>
-            </Paper>
 
             {/* ─── Shift Settings Dialog ─── */}
             <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}

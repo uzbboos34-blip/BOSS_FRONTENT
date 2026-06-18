@@ -97,6 +97,7 @@ export default function Attendance() {
   const [selectedSupId, setSelectedSupId] = useState('');
   const [assignedWorkers, setAssignedWorkers] = useState([]);
   const [loadingAssigned, setLoadingAssigned] = useState(false);
+  const [allAssignments, setAllAssignments] = useState([]);
   
   // Assign new workers dialog states
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -161,6 +162,15 @@ export default function Attendance() {
     }
   }
 
+  async function fetchAllAssignments() {
+    try {
+      const res = await api.get('/api/v1/attendance/assign/all');
+      setAllAssignments(res.data || []);
+    } catch (e) {
+      console.error('Failed to fetch all assignments:', e);
+    }
+  }
+
   useEffect(() => {
     fetchSupervisors();
     fetchAllWorkers();
@@ -173,8 +183,11 @@ export default function Attendance() {
   }, [subTab, filterDate, filterSession, filterStatus, filterSupervisorId]);
 
   useEffect(() => {
-    if (subTab === 1 && selectedSupId) {
-      getAssignedWorkers(selectedSupId);
+    if (subTab === 1) {
+      fetchAllAssignments();
+      if (selectedSupId) {
+        getAssignedWorkers(selectedSupId);
+      }
     }
   }, [subTab, selectedSupId]);
 
@@ -443,6 +456,7 @@ export default function Attendance() {
     }
     try {
       await api.delete(`/api/v1/attendance/assign/${worker.assignmentId}`);
+      await fetchAllAssignments();
       getAssignedWorkers(selectedSupId);
     } catch (e) {
       alert('Ошибка: ' + (e.response?.data?.message || 'Не удалось открепить рабочего'));
@@ -470,6 +484,7 @@ export default function Attendance() {
         supervisorId: Number(selectedSupId),
         workerIds: selectedWorkerIdsForAssign
       });
+      await fetchAllAssignments();
       getAssignedWorkers(selectedSupId);
       setAssignDialogOpen(false);
     } catch (e) {
@@ -516,13 +531,18 @@ export default function Attendance() {
   const totalLogPages = Math.max(1, Math.ceil(logs.length / ITEMS_PER_PAGE));
   const paginatedLogs = logs.slice((logPage - 1) * ITEMS_PER_PAGE, logPage * ITEMS_PER_PAGE);
 
-  // Filter out workers that are already assigned to this supervisor
+  // Filter out workers that are already assigned to ANY supervisor
   const unassignedWorkers = allWorkers.filter(w => {
-    const isAssigned = assignedWorkers.some(aw => aw.id === w.id);
+    const isAssigned = allAssignments.some(aw => aw.workerId === w.id);
     if (isAssigned) return false;
     if (assignSearchQuery) {
-      return w.fullName.toLowerCase().includes(assignSearchQuery.toLowerCase()) || 
-             (w.passport && w.passport.toLowerCase().includes(assignSearchQuery.toLowerCase()));
+      const q = assignSearchQuery.toLowerCase();
+      const groupName = w.group?.name || '';
+      const position = w.position || '';
+      return w.fullName.toLowerCase().includes(q) || 
+             (w.passport && w.passport.toLowerCase().includes(q)) ||
+             position.toLowerCase().includes(q) ||
+             groupName.toLowerCase().includes(q);
     }
     return true;
   });
@@ -1036,7 +1056,7 @@ export default function Attendance() {
             <TextField
               size="small"
               fullWidth
-              placeholder="Поиск по имени или паспорту..."
+              placeholder="Поиск по имени, паспорту, бригаде..."
               value={assignSearchQuery}
               onChange={(e) => setAssignSearchQuery(e.target.value)}
               InputProps={{
@@ -1045,9 +1065,35 @@ export default function Attendance() {
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />
 
-            <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600 }}>
-              Выберите рабочих ({selectedWorkerIdsForAssign.length} выбрано):
-            </Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
+              <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600 }}>
+                Выберите рабочих ({selectedWorkerIdsForAssign.length} выбрано):
+              </Typography>
+              <Box>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    const visibleIds = unassignedWorkers.map(w => w.id);
+                    setSelectedWorkerIdsForAssign(prev => {
+                      const union = new Set([...prev, ...visibleIds]);
+                      return Array.from(union);
+                    });
+                  }}
+                  sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 700, color: '#7b61ff', p: 0, minWidth: 0, mr: 2 }}
+                >
+                  Выбрать все
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setSelectedWorkerIdsForAssign([]);
+                  }}
+                  sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 700, color: '#ef4444', p: 0, minWidth: 0 }}
+                >
+                  Сбросить всё
+                </Button>
+              </Box>
+            </Stack>
 
             <Paper variant="outlined" sx={{ maxHeight: 250, overflowY: 'auto', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
               {unassignedWorkers.length === 0 ? (
@@ -1087,7 +1133,7 @@ export default function Attendance() {
                         {worker.fullName}
                       </Typography>
                       <Typography sx={{ fontSize: '0.72rem', color: '#6b7280' }}>
-                        Паспорт: {worker.passport || '—'} | Должность: {worker.position || '—'}
+                        Паспорт: {worker.passport || '—'} | Должность: {worker.position || '—'} | Группа: {worker.group?.name || '—'}
                       </Typography>
                     </Box>
                   </Box>
