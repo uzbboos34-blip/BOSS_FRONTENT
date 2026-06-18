@@ -557,66 +557,63 @@ export default function Students() {
       }
       // ───────────────────────────────────────────────────────────────────────
 
-      const concurrency = 5;
-      for (let i = 0; i < validRows.length; i += concurrency) {
-        const chunk = validRows.slice(i, i + concurrency);
+      for (let i = 0; i < validRows.length; i++) {
+        const { ri, r, fullNameVal, passportVal } = validRows[i];
 
-        await Promise.all(chunk.map(async ({ ri, r, fullNameVal, passportVal }) => {
-          const get = (idxVal) => (idxVal !== -1 && r[idxVal] != null) ? String(r[idxVal]).trim() : '';
-          const payload = { fullName: fullNameVal, passport: passportVal };
+        const get = (idxVal) => (idxVal !== -1 && r[idxVal] != null) ? String(r[idxVal]).trim() : '';
+        const payload = { fullName: fullNameVal, passport: passportVal };
 
-          const qr    = cleanVal(get(idx.qrCode));
-          payload.qrCode = qr || passportVal;
-          const ph    = cleanVal(get(idx.phone));            if (ph)    payload.phone = ph;
-          const pos   = cleanVal(get(idx.position));         if (pos)   payload.position = pos;
-          const fnRu  = cleanVal(get(idx.fullNameRu));       if (fnRu)  payload.fullNameRu = fnRu;
-          const inn   = cleanVal(get(idx.inn));              if (inn)   payload.inn = inn;
-          const camp  = cleanVal(get(idx.campAddress));      if (camp)  payload.campAddress = camp;
-          const site  = cleanVal(get(idx.constructionSite)); if (site)  payload.constructionSite = site;
-          const dept  = cleanVal(get(idx.department));       if (dept)  payload.department = dept;
-          const team  = cleanVal(get(idx.teamDivision));     if (team)  payload.teamDivision = team;
-          const sicil = cleanVal(get(idx.sicilNo));          if (sicil) payload.sicilNo = sicil;
-          const center= cleanVal(get(idx.centerNo));         if (center)payload.centerNo = center;
-          const patNo = cleanVal(get(idx.patentNo));         if (patNo) payload.patentNo = patNo;
+        const qr    = cleanVal(get(idx.qrCode));
+        payload.qrCode = qr || passportVal;
+        const ph    = cleanVal(get(idx.phone));            if (ph)    payload.phone = ph;
+        const pos   = cleanVal(get(idx.position));         if (pos)   payload.position = pos;
+        const fnRu  = cleanVal(get(idx.fullNameRu));       if (fnRu)  payload.fullNameRu = fnRu;
+        const inn   = cleanVal(get(idx.inn));              if (inn)   payload.inn = inn;
+        const camp  = cleanVal(get(idx.campAddress));      if (camp)  payload.campAddress = camp;
+        const site  = cleanVal(get(idx.constructionSite)); if (site)  payload.constructionSite = site;
+        const dept  = cleanVal(get(idx.department));       if (dept)  payload.department = dept;
+        const team  = cleanVal(get(idx.teamDivision));     if (team)  payload.teamDivision = team;
+        const sicil = cleanVal(get(idx.sicilNo));          if (sicil) payload.sicilNo = sicil;
+        const center= cleanVal(get(idx.centerNo));         if (center)payload.centerNo = center;
+        const patNo = cleanVal(get(idx.patentNo));         if (patNo) payload.patentNo = patNo;
 
-          // Guruhga biriktirish — department nomidan groupId topamiz
-          const brigadeKey = cleanVal(get(idx.department));
-          if (brigadeKey && groupCache[brigadeKey]) {
-            payload.groupId = groupCache[brigadeKey];
-          }
+        // Guruhga biriktirish — department nomidan groupId topamiz
+        const brigadeKey = cleanVal(get(idx.department));
+        if (brigadeKey && groupCache[brigadeKey]) {
+          payload.groupId = groupCache[brigadeKey];
+        }
 
-          // Ixtisoslikka biriktirish — teamDivision (Ekip Dagilimi) nomidan specializationId topamiz
-          const teamKey = cleanVal(get(idx.teamDivision));
-          if (teamKey && specCache[teamKey]) {
-            payload.specializationId = specCache[teamKey];
-          }
+        // Ixtisoslikka biriktirish — teamDivision (Ekip Dagilimi) nomidan specializationId topamiz
+        const teamKey = cleanVal(get(idx.teamDivision));
+        if (teamKey && specCache[teamKey]) {
+          payload.specializationId = specCache[teamKey];
+        }
 
-          const rawRate = cleanVal(get(idx.hourlyRate));
-          if (rawRate) { const rv = parseFloat(rawRate); if (!isNaN(rv)) payload.hourlyRate = rv; }
+        const rawRate = cleanVal(get(idx.hourlyRate));
+        if (rawRate) { const rv = parseFloat(rawRate); if (!isNaN(rv)) payload.hourlyRate = rv; }
 
-          const rawCit = cleanVal(get(idx.citizenship)).toUpperCase().replace(/[^A-Z]/g,'');
-          if (rawCit) payload.citizenship = ['UZ','RU','KZ','KG','TJ','OTHER'].includes(rawCit) ? rawCit : 'UZ';
+        const rawCit = cleanVal(get(idx.citizenship)).toUpperCase().replace(/[^A-Z]/g,'');
+        if (rawCit) payload.citizenship = ['UZ','RU','KZ','KG','TJ','OTHER'].includes(rawCit) ? rawCit : 'UZ';
 
-          const rawGen = cleanVal(get(idx.gender)).toUpperCase();
-          if (rawGen) payload.gender = (rawGen.includes('ЖЕН') || rawGen.includes('FEMALE') || rawGen === 'F') ? 'FEMALE' : 'MALE';
+        const rawGen = cleanVal(get(idx.gender)).toUpperCase();
+        if (rawGen) payload.gender = (rawGen.includes('ЖЕН') || rawGen.includes('FEMALE') || rawGen === 'F') ? 'FEMALE' : 'MALE';
 
-          const sd = parseDate(cleanVal(get(idx.startDate)));       if (sd) payload.startDate = sd;
-          const bd = parseDate(cleanVal(get(idx.birthDate)));       if (bd) payload.birthDate = bd;
-          const ps = parseDate(cleanVal(get(idx.patentStartDate))); if (ps) payload.patentStartDate = ps;
-          const pe = parseDate(cleanVal(get(idx.patentEndDate)));   if (pe) payload.patentEndDate = pe;
+        const sd = parseDate(cleanVal(get(idx.startDate)));       if (sd) payload.startDate = sd;
+        const bd = parseDate(cleanVal(get(idx.birthDate)));       if (bd) payload.birthDate = bd;
+        const ps = parseDate(cleanVal(get(idx.patentStartDate))); if (ps) payload.patentStartDate = ps;
+        const pe = parseDate(cleanVal(get(idx.patentEndDate)));   if (pe) payload.patentEndDate = pe;
 
-          try {
-            await api.post('/api/v1/worker', payload);
-            successCount++;
-          } catch (err) {
-            errorCount++;
-            const msg = err.response?.data?.message;
-            errors.push(`Qator ${ri + 2} (${fullNameVal}): ${Array.isArray(msg) ? msg.join(', ') : msg || 'Xato'}`);
-          }
-        }));
+        try {
+          await api.post('/api/v1/worker', payload);
+          successCount++;
+        } catch (err) {
+          errorCount++;
+          const msg = err.response?.data?.message;
+          errors.push(`Qator ${ri + 2} (${fullNameVal}): ${Array.isArray(msg) ? msg.join(', ') : msg || 'Xato'}`);
+        }
 
-        setImportProgress({ current: Math.min(i + concurrency, validRows.length), total: validRows.length });
-        await new Promise(resolve => setTimeout(resolve, 100));
+        setImportProgress({ current: i + 1, total: validRows.length });
+        await new Promise(resolve => setTimeout(resolve, 150));
       }
 
       setImportProgress(null);
