@@ -561,7 +561,7 @@ export default function Students() {
         const { ri, r, fullNameVal, passportVal } = validRows[i];
 
         const get = (idxVal) => (idxVal !== -1 && r[idxVal] != null) ? String(r[idxVal]).trim() : '';
-        const payload = { fullName: fullNameVal, passport: passportVal };
+        const payload = { fullName: fullNameVal, passport: passportVal, upsert: true };
 
         const qr    = cleanVal(get(idx.qrCode));
         payload.qrCode = qr || passportVal;
