@@ -17,7 +17,32 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+const getPaginationRange = (current, total) => {
+  const delta = 1;
+  const range = [];
+  const rangeWithDots = [];
+  let l;
 
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (const i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l > 2) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+};
 const ITEMS_PER_PAGE = 10;
 
 const STATUS_OPTIONS = [
@@ -694,12 +719,21 @@ export default function Attendance() {
               <Button size="small" startIcon={<KeyboardArrowLeftIcon />} disabled={logPage === 1} onClick={() => setLogPage(p => p - 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
                 Назад
               </Button>
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                {Array.from({ length: totalLogPages }, (_, i) => i + 1).map(p => (
-                  <Button key={p} size="small" onClick={() => setLogPage(p)}
-                    sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: logPage === p ? 700 : 400, backgroundColor: logPage === p ? '#7b61ff' : 'transparent', color: logPage === p ? '#fff' : '#4b5563', '&:hover': { backgroundColor: logPage === p ? '#6a50e8' : '#f3f4f6' } }}
-                  >{p}</Button>
-                ))}
+              <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                {getPaginationRange(logPage, totalLogPages).map((p, index) => {
+                  if (p === '...') {
+                    return (
+                      <Typography key={`ell-${index}`} sx={{ px: 1, color: '#6b7280', fontSize: '0.875rem' }}>
+                        ...
+                      </Typography>
+                    );
+                  }
+                  return (
+                    <Button key={p} size="small" onClick={() => setLogPage(p)}
+                      sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: logPage === p ? 700 : 400, backgroundColor: logPage === p ? '#7b61ff' : 'transparent', color: logPage === p ? '#fff' : '#4b5563', '&:hover': { backgroundColor: logPage === p ? '#6a50e8' : '#f3f4f6' } }}
+                    >{p}</Button>
+                  );
+                })}
               </Box>
               <Button size="small" endIcon={<KeyboardArrowRightIcon />} disabled={logPage === totalLogPages} onClick={() => setLogPage(p => p + 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
                 Далее

@@ -19,6 +19,33 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 
 const ITEMS_PER_PAGE = 10;
 
+const getPaginationRange = (current, total) => {
+  const delta = 1;
+  const range = [];
+  const rangeWithDots = [];
+  let l;
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (const i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l > 2) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+};
+
 const getInitials = (name = '') => {
   const parts = name.trim().split(' ');
   return parts.length >= 2
@@ -353,21 +380,30 @@ export default function Staff() {
           >
             Назад
           </Button>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <Button
-                key={p} size="small"
-                onClick={() => setPage(p)}
-                sx={{
-                  minWidth: 32, height: 32, borderRadius: '8px', fontWeight: page === p ? 700 : 400,
-                  backgroundColor: page === p ? '#7b61ff' : 'transparent',
-                  color: page === p ? '#fff' : '#4b5563',
-                  '&:hover': { backgroundColor: page === p ? '#6a50e8' : '#f3f4f6' }
-                }}
-              >
-                {p}
-              </Button>
-            ))}
+          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+            {getPaginationRange(page, totalPages).map((p, index) => {
+              if (p === '...') {
+                return (
+                  <Typography key={`ell-${index}`} sx={{ px: 1, color: '#6b7280', fontSize: '0.875rem' }}>
+                    ...
+                  </Typography>
+                );
+              }
+              return (
+                <Button
+                  key={p} size="small"
+                  onClick={() => setPage(p)}
+                  sx={{
+                    minWidth: 32, height: 32, borderRadius: '8px', fontWeight: page === p ? 700 : 400,
+                    backgroundColor: page === p ? '#7b61ff' : 'transparent',
+                    color: page === p ? '#fff' : '#4b5563',
+                    '&:hover': { backgroundColor: page === p ? '#6a50e8' : '#f3f4f6' }
+                  }}
+                >
+                  {p}
+                </Button>
+              );
+            })}
           </Box>
           <Button
             size="small" endIcon={<KeyboardArrowRightIcon />}

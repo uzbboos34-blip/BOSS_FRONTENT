@@ -21,6 +21,33 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const ITEMS_PER_PAGE = 10;
 
+const getPaginationRange = (current, total) => {
+  const delta = 1;
+  const range = [];
+  const rangeWithDots = [];
+  let l;
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    }
+  }
+
+  for (const i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1);
+      } else if (i - l > 2) {
+        rangeWithDots.push('...');
+      }
+    }
+    rangeWithDots.push(i);
+    l = i;
+  }
+
+  return rangeWithDots;
+};
+
 const groupColors = ['#7b61ff', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#ec4899', '#06b6d4'];
 const getGroupColor = (name = '') => groupColors[name.charCodeAt(0) % groupColors.length];
 
@@ -482,12 +509,21 @@ export default function Groups() {
           <Button size="small" startIcon={<KeyboardArrowLeftIcon />} disabled={page === 1} onClick={() => setPage(p => p - 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
             Назад
           </Button>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(p => (
-              <Button key={p} size="small" onClick={() => setPage(p)}
-                sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: page === p ? 700 : 400, backgroundColor: page === p ? '#7b61ff' : 'transparent', color: page === p ? '#fff' : '#4b5563', '&:hover': { backgroundColor: page === p ? '#6a50e8' : '#f3f4f6' } }}
-              >{p}</Button>
-            ))}
+          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+            {getPaginationRange(page, totalPages).map((p, index) => {
+              if (p === '...') {
+                return (
+                  <Typography key={`ell-${index}`} sx={{ px: 1, color: '#6b7280', fontSize: '0.875rem' }}>
+                    ...
+                  </Typography>
+                );
+              }
+              return (
+                <Button key={p} size="small" onClick={() => setPage(p)}
+                  sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: page === p ? 700 : 400, backgroundColor: page === p ? '#7b61ff' : 'transparent', color: page === p ? '#fff' : '#4b5563', '&:hover': { backgroundColor: page === p ? '#6a50e8' : '#f3f4f6' } }}
+                >{p}</Button>
+              );
+            })}
           </Box>
           <Button size="small" endIcon={<KeyboardArrowRightIcon />} disabled={page === totalPages} onClick={() => setPage(p => p + 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
             Далее
