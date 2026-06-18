@@ -442,22 +442,60 @@ export default function SupervisorDashboard() {
                   overflow: 'hidden',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  // Hide library default shaded region and borders
+                  '& #qr-shaded-region': { display: 'none !important' }
                 }}>
                   {/* html5-qrcode video viewport container */}
-                  <Box id="reader" sx={{ width: '100%', height: '100%', '& video': { objectFit: 'cover !important' } }} />
-                  {/* Pulsing Scan Radar overlay */}
+                  <Box id="reader" sx={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    '& video': { objectFit: 'cover !important', width: '100% !important', height: '100% !important' } 
+                  }} />
+
+                  {/* Custom Perfect Square Viewfinder Overlay */}
                   <Box sx={{
                     position: 'absolute',
-                    left: 0,
-                    width: '100%',
-                    height: '3px',
-                    background: 'linear-gradient(to bottom, rgba(123,97,255,0), #7b61ff, rgba(123,97,255,0))',
-                    boxShadow: '0 0 15px #7b61ff',
-                    animation: `${scanAnimation} 3.5s linear infinite`,
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '180px',
+                    height: '180px',
+                    border: '3px solid #ffffff',
+                    borderRadius: '20px',
+                    boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.6)', // Shaded backdrop mask
+                    zIndex: 10,
                     pointerEvents: 'none',
-                    zIndex: 10
-                  }} />
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {/* Pulsing Scan Radar overlay inside the square */}
+                    <Box sx={{
+                      position: 'absolute',
+                      left: 0,
+                      width: '100%',
+                      height: '3px',
+                      background: 'linear-gradient(to right, rgba(123,97,255,0), #7b61ff, rgba(123,97,255,0))',
+                      boxShadow: '0 0 15px #7b61ff',
+                      animation: `${scanAnimation} 3.5s linear infinite`
+                    }} />
+                  </Box>
+
+                  <Typography sx={{ 
+                    position: 'absolute',
+                    bottom: 15,
+                    color: '#cbd5e1', 
+                    fontSize: '0.72rem', 
+                    fontWeight: 700, 
+                    zIndex: 12,
+                    backgroundColor: 'rgba(15,23,42,0.8)',
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: '20px'
+                  }}>
+                    Наведите камеру на QR-код
+                  </Typography>
                 </Paper>
               </Box>
             )}
