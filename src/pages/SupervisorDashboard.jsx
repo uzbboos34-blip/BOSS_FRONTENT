@@ -67,6 +67,7 @@ export default function SupervisorDashboard() {
 
     const startCamera = async () => {
       try {
+        if (!isMounted) return;
         // Double check reader div exists in DOM
         const el = document.getElementById('reader');
         if (!el) return;
@@ -82,6 +83,12 @@ export default function SupervisorDashboard() {
           },
           () => {} // silent error parser
         );
+
+        if (!isMounted) {
+          if (scanner.isScanning) {
+            await scanner.stop();
+          }
+        }
       } catch (err) {
         console.error('Html5Qrcode start failed:', err);
         if (isMounted) {
@@ -246,7 +253,7 @@ export default function SupervisorDashboard() {
       const res = await api.post('/api/v1/attendance/scan', {
         qrCode: selectedWorker.qrCode,
         status: finalStatus,
-        session: Number(session),
+        session: Number(journalSession),
         note
       });
       
@@ -536,155 +543,7 @@ export default function SupervisorDashboard() {
               </Alert>
             )}
 
-            {/* ─── Shift Settings Dialog ─── */}
-            <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}
-              PaperProps={{ sx: { borderRadius: '20px', width: '380px', maxWidth: '90vw' } }}>
-              <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem', pb: 1 }}>
-                Параметры смены
-              </DialogTitle>
-              <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1.5 }}>
-                <FormControl size="small" fullWidth sx={{ mt: 1 }}>
-                  <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Смена</Typography>
-                  <Select
-                    value={session}
-                    onChange={(e) => setSession(e.target.value)}
-                    sx={{ borderRadius: '8px' }}
-                  >
-                    {SESSION_OPTIONS.map(o => (
-                      <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
 
-                <FormControl size="small" fullWidth>
-                  <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Статус по умолчанию</Typography>
-                  <Select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    sx={{ borderRadius: '8px' }}
-                  >
-                    {STATUS_OPTIONS.map(o => (
-                      <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </DialogContent>
-              <DialogActions sx={{ p: 2.5, pt: 1 }}>
-                <Button variant="contained" fullWidth onClick={() => setSettingsOpen(false)} sx={{ backgroundColor: '#7b61ff', borderRadius: '10px', textTransform: 'none', fontWeight: 700, py: 1.2, '&:hover': { backgroundColor: '#6a50e8' } }}>
-                  Применить
-                </Button>
-              </DialogActions>
-            </Dialog>
-
-            {/* ─── Mark Attendance Reason Dialog ─── */}
-            <Dialog open={reasonDialogOpen} onClose={() => setReasonDialogOpen(false)}
-              PaperProps={{ sx: { borderRadius: '24px', width: '420px', maxWidth: '95vw', p: 1 } }}>
-              <DialogTitle sx={{ fontWeight: 800, fontSize: '1.2rem', pb: 1, color: '#0f172a' }}>
-                Отметить сотрудника
-              </DialogTitle>
-              <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                <Box sx={{ mb: 1 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: '#334155' }}>
-                    {selectedWorker?.fullName}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    Паспорт: {selectedWorker?.passport || '—'} | Должность: {selectedWorker?.position || '—'}
-                  </Typography>
-                </Box>
-
-                <FormControl component="fieldset" fullWidth>
-                  <Typography sx={{ mb: 1, fontSize: '0.78rem', fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Выберите статус или причину:
-                  </Typography>
-                  <RadioGroup
-                    value={selectedReason}
-                    onChange={(e) => setSelectedReason(e.target.value)}
-                    sx={{ gap: 1 }}
-                  >
-                    {[
-                      { value: 'ABSENT', label: 'Не пришел (ABSENT)', color: '#ef4444', bg: '#fef2f2' },
-                      { value: 'LATE', label: 'Опоздал (LATE)', color: '#f59e0b', bg: '#fffbeb' },
-                      { value: 'VACATION', label: 'В отпуске (VACATION)', color: '#3b82f6', bg: '#eff6ff' },
-                      { value: 'SICK', label: 'Болеет (SICK)', color: '#10b981', bg: '#ecfdf5' },
-                      { value: 'CUSTOM', label: 'Другая причина (указать вручную)', color: '#64748b', bg: '#f8fafc' },
-                    ].map((opt) => (
-                      <Paper
-                        key={opt.value}
-                        variant="outlined"
-                        onClick={() => setSelectedReason(opt.value)}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          px: 2,
-                          py: 1.2,
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          border: selectedReason === opt.value ? `2px solid ${opt.color}` : '1px solid #e2e8f0',
-                          backgroundColor: selectedReason === opt.value ? opt.bg : 'transparent',
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            backgroundColor: opt.bg,
-                            borderColor: opt.color
-                          }
-                        }}
-                      >
-                        <FormControlLabel
-                          value={opt.value}
-                          control={<Radio sx={{ color: opt.color, '&.Mui-checked': { color: opt.color }, display: 'none' }} />}
-                          label={
-                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 650, color: '#1e293b' }}>
-                              {opt.label}
-                            </Typography>
-                          }
-                          sx={{ m: 0, width: '100%' }}
-                        />
-                      </Paper>
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-
-                {selectedReason === 'CUSTOM' && (
-                  <TextField
-                    autoFocus
-                    multiline
-                    rows={2}
-                    size="small"
-                    fullWidth
-                    label="Укажите причину отсутствия"
-                    placeholder="Например: Отпросился, работает на другом объекте..."
-                    value={customReason}
-                    onChange={(e) => setCustomReason(e.target.value)}
-                    sx={{
-                      '& .MuiOutlinedInput-root': { borderRadius: '12px' }
-                    }}
-                  />
-                )}
-              </DialogContent>
-              <DialogActions sx={{ p: 2.5, pt: 1, gap: 1 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setReasonDialogOpen(false)}
-                  sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 3, borderColor: '#e2e8f0', color: '#4b5563' }}
-                >
-                  Отмена
-                </Button>
-                <Button
-                  variant="contained"
-                  onClick={handleSaveReason}
-                  disabled={savingReason || (selectedReason === 'CUSTOM' && !customReason.trim())}
-                  sx={{
-                    backgroundColor: '#7b61ff',
-                    borderRadius: '12px',
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    px: 4,
-                    '&:hover': { backgroundColor: '#6a50e8' }
-                  }}
-                >
-                  {savingReason ? 'Сохранение...' : 'Сохранить'}
-                </Button>
-              </DialogActions>
-            </Dialog>
           </Box>
         )}
 
@@ -955,6 +814,156 @@ export default function SupervisorDashboard() {
             </Paper>
           </Box>
         )}
+
+        {/* ─── Shift Settings Dialog (Global) ─── */}
+        <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}
+          PaperProps={{ sx: { borderRadius: '20px', width: '380px', maxWidth: '90vw' } }}>
+          <DialogTitle sx={{ fontWeight: 800, fontSize: '1.1rem', pb: 1 }}>
+            Параметры смены
+          </DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1.5 }}>
+            <FormControl size="small" fullWidth sx={{ mt: 1 }}>
+              <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Смена</Typography>
+              <Select
+                value={session}
+                onChange={(e) => setSession(e.target.value)}
+                sx={{ borderRadius: '8px' }}
+              >
+                {SESSION_OPTIONS.map(o => (
+                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" fullWidth>
+              <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Статус по умолчанию</Typography>
+              <Select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                sx={{ borderRadius: '8px' }}
+              >
+                {STATUS_OPTIONS.map(o => (
+                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, pt: 1 }}>
+            <Button variant="contained" fullWidth onClick={() => setSettingsOpen(false)} sx={{ backgroundColor: '#7b61ff', borderRadius: '10px', textTransform: 'none', fontWeight: 700, py: 1.2, '&:hover': { backgroundColor: '#6a50e8' } }}>
+              Применить
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ─── Mark Attendance Reason Dialog (Global) ─── */}
+        <Dialog open={reasonDialogOpen} onClose={() => setReasonDialogOpen(false)}
+          PaperProps={{ sx: { borderRadius: '24px', width: '420px', maxWidth: '95vw', p: 1 } }}>
+          <DialogTitle sx={{ fontWeight: 800, fontSize: '1.2rem', pb: 1, color: '#0f172a' }}>
+            Отметить сотрудника
+          </DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <Box sx={{ mb: 1 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: '#334155' }}>
+                {selectedWorker?.fullName}
+              </Typography>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>
+                Паспорт: {selectedWorker?.passport || '—'} | Должность: {selectedWorker?.position || '—'}
+              </Typography>
+            </Box>
+
+            <FormControl component="fieldset" fullWidth>
+              <Typography sx={{ mb: 1, fontSize: '0.78rem', fontWeight: 750, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Выберите статус или причину:
+              </Typography>
+              <RadioGroup
+                value={selectedReason}
+                onChange={(e) => setSelectedReason(e.target.value)}
+                sx={{ gap: 1 }}
+              >
+                {[
+                  { value: 'ABSENT', label: 'Не пришел (ABSENT)', color: '#ef4444', bg: '#fef2f2' },
+                  { value: 'LATE', label: 'Опоздал (LATE)', color: '#f59e0b', bg: '#fffbeb' },
+                  { value: 'VACATION', label: 'В отпуске (VACATION)', color: '#3b82f6', bg: '#eff6ff' },
+                  { value: 'SICK', label: 'Болеет (SICK)', color: '#10b981', bg: '#ecfdf5' },
+                  { value: 'CUSTOM', label: 'Другая причина (указать вручную)', color: '#64748b', bg: '#f8fafc' },
+                ].map((opt) => (
+                  <Paper
+                    key={opt.value}
+                    variant="outlined"
+                    onClick={() => setSelectedReason(opt.value)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      px: 2,
+                      py: 1.2,
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      border: selectedReason === opt.value ? `2px solid ${opt.color}` : '1px solid #e2e8f0',
+                      backgroundColor: selectedReason === opt.value ? opt.bg : 'transparent',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: opt.bg,
+                        borderColor: opt.color
+                      }
+                    }}
+                  >
+                    <FormControlLabel
+                      value={opt.value}
+                      control={<Radio sx={{ color: opt.color, '&.Mui-checked': { color: opt.color }, display: 'none' }} />}
+                      label={
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 650, color: '#1e293b' }}>
+                          {opt.label}
+                        </Typography>
+                      }
+                      sx={{ m: 0, width: '100%' }}
+                    />
+                  </Paper>
+                ))}
+              </RadioGroup>
+            </FormControl>
+
+            {selectedReason === 'CUSTOM' && (
+              <TextField
+                autoFocus
+                multiline
+                rows={2}
+                size="small"
+                fullWidth
+                label="Укажите причину отсутствия"
+                placeholder="Например: Отпросился, работает на другом объекте..."
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+                }}
+              />
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, pt: 1, gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setReasonDialogOpen(false)}
+              sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 3, borderColor: '#e2e8f0', color: '#4b5563' }}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveReason}
+              disabled={savingReason || (selectedReason === 'CUSTOM' && !customReason.trim())}
+              sx={{
+                backgroundColor: '#7b61ff',
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 700,
+                px: 4,
+                '&:hover': { backgroundColor: '#6a50e8' }
+              }}
+            >
+              {savingReason ? 'Сохранение...' : 'Сохранить'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
       </Box>
 
