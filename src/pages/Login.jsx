@@ -188,6 +188,10 @@ export default function Login() {
     setSuccess(false);
 
     try {
+      const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
+        ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '')
+        : (import.meta.env.DEV ? '' : 'https://boss-backend-glek.onrender.com');
+
       let formattedPhone = login.trim();
       if (!formattedPhone.startsWith('+')) {
         if (formattedPhone.length === 9) {
@@ -197,7 +201,7 @@ export default function Login() {
         }
       }
 
-      let response = await fetch("/api/v1/auth/login", {
+      let response = await fetch(`${backendUrl}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +215,7 @@ export default function Login() {
       let data = await response.json();
 
       if (!response.ok && formattedPhone !== login.trim()) {
-        const rawResponse = await fetch("/api/v1/auth/login", {
+        const rawResponse = await fetch(`${backendUrl}/api/v1/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
