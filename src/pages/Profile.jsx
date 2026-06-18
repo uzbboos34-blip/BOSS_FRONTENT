@@ -76,7 +76,8 @@ export default function Profile() {
   const resolvePhoto = (photo) => {
     if (!photo) return undefined;
     if (photo.startsWith('http') || photo.startsWith('/')) return photo;
-    return `/file/${photo}`;
+    const backendUrl = (import.meta.env.VITE_API_URL || '').replace(/\/api\/v1\/?$/, '') || '';
+    return `${backendUrl}/file/${photo}`;
   };
 
   const totalStudents = groups.reduce((acc, g) => acc + (g.studentCount || 0), 0);
