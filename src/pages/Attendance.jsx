@@ -104,6 +104,9 @@ export default function Attendance() {
   const [assignSearchQuery, setAssignSearchQuery] = useState('');
   const [selectedWorkerIdsForAssign, setSelectedWorkerIdsForAssign] = useState([]);
   const [savingAssign, setSavingAssign] = useState(false);
+  const [bulkCount, setBulkCount] = useState('');
+  const [showPasteArea, setShowPasteArea] = useState(false);
+  const [pastedList, setPastedList] = useState('');
 
   // Helper fetchers
   async function fetchSupervisors() {
@@ -470,7 +473,62 @@ export default function Attendance() {
     }
     setSelectedWorkerIdsForAssign([]);
     setAssignSearchQuery('');
+    setBulkCount('');
+    setShowPasteArea(false);
+    setPastedList('');
     setAssignDialogOpen(true);
+  };
+
+  const handleSelectFirstN = () => {
+    const count = parseInt(bulkCount, 10);
+    if (isNaN(count) || count <= 0) {
+      alert('Пожалуйста, введите корректное число');
+      return;
+    }
+    const sliceIds = unassignedWorkers.slice(0, count).map(w => w.id);
+    setSelectedWorkerIdsForAssign(prev => {
+      const union = new Set([...prev, ...sliceIds]);
+      return Array.from(union);
+    });
+    setBulkCount('');
+  };
+
+  const handleSelectPasted = () => {
+    if (!pastedList.trim()) {
+      alert('Пожалуйста, вставьте список');
+      return;
+    }
+    const items = pastedList
+      .split(/[\n,; \t]+/)
+      .map(item => item.trim().toLowerCase())
+      .filter(item => item.length > 0);
+
+    if (items.length === 0) {
+      alert('Не удалось распознать элементы списка');
+      return;
+    }
+
+    const itemSet = new Set(items);
+    const matched = unassignedWorkers.filter(w => {
+      const pass = (w.passport || '').toLowerCase();
+      const qr = (w.qrCode || '').toLowerCase();
+      const name = (w.fullName || '').toLowerCase();
+      return itemSet.has(pass) || itemSet.has(qr) || items.some(it => name.includes(it));
+    });
+
+    if (matched.length === 0) {
+      alert('Не найдено подходящих рабочих из списка');
+      return;
+    }
+
+    const matchedIds = matched.map(w => w.id);
+    setSelectedWorkerIdsForAssign(prev => {
+      const union = new Set([...prev, ...matchedIds]);
+      return Array.from(union);
+    });
+    setPastedList('');
+    setShowPasteArea(false);
+    alert(`Выбрано ${matched.length} рабочих по вашему списку`);
   };
 
   const handleAssign = async () => {
@@ -1064,6 +1122,87 @@ export default function Attendance() {
               }}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />
+
+            <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1.5 }}>
+              <Button
+                size="small"
+                onClick={() => setShowPasteArea(!showPasteArea)}
+                sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 700, color: '#7b61ff', p: 0, minWidth: 0 }}
+              >
+                {showPasteArea ? 'Скрыть список' : 'Вставить список паспортов'}
+              </Button>
+              
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600 }}>
+                  Первые:
+                </Typography>
+                <TextField
+                  size="small"
+                  type="number"
+                  placeholder="Кол-во"
+                  value={bulkCount}
+                  onChange={(e) => setBulkCount(e.target.value)}
+                  sx={{
+                    width: 75,
+                    '& .MuiOutlinedInput-root': { borderRadius: '8px', height: 28, fontSize: '0.75rem', padding: '0 4px' },
+                    '& input': { padding: '4px 6px', textAlign: 'center' }
+                  }}
+                />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleSelectFirstN}
+                  sx={{
+                    textTransform: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    height: 28,
+                    minWidth: 50,
+                    borderColor: '#7b61ff',
+                    color: '#7b61ff',
+                    px: 1,
+                    '&:hover': { borderColor: '#6a50e8', backgroundColor: '#f5f3ff' }
+                  }}
+                >
+                  Ок
+                </Button>
+              </Stack>
+            </Stack>
+
+            {showPasteArea && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 1.5, border: '1px dashed #7b61ff', borderRadius: '12px', backgroundColor: '#fafafa' }}>
+                <Typography variant="caption" sx={{ color: '#475569', fontWeight: 600 }}>
+                  Вставьте список паспортов (каждый с новой строки или через пробел):
+                </Typography>
+                <TextField
+                  multiline
+                  rows={3}
+                  size="small"
+                  fullWidth
+                  placeholder="Например:\nV8168483\nS6832877"
+                  value={pastedList}
+                  onChange={(e) => setPastedList(e.target.value)}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '0.8rem', backgroundColor: '#fff' } }}
+                />
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleSelectPasted}
+                  sx={{
+                    alignSelf: 'flex-end',
+                    textTransform: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    backgroundColor: '#7b61ff',
+                    '&:hover': { backgroundColor: '#6a50e8' }
+                  }}
+                >
+                  Выбрать из списка
+                </Button>
+              </Box>
+            )}
 
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
               <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600 }}>
