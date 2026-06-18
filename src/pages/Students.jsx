@@ -489,13 +489,13 @@ export default function Students() {
       // ───────────────────────────────────────────────────────────────────────
 
       // ─── Ixtisosliklarni avvaldan yaratib olish (findOrCreate) ─────────────
-      // position ustunidan noyob ixtisoslik nomlarini yig'amiz (Elektrik, Malin, ...)
-      const specCache = {}; // { 'Elektrik': 3, 'Malin': 7, ... }
+      // teamDivision (Ekip Dagilimi) ustunidan noyob ixtisoslik nomlarini yig'amiz
+      const specCache = {}; // { 'Ekip A': 3, 'Ekip B': 7, ... }
       const uniqueSpecNames = new Set();
       for (const { r } of validRows) {
         const get = (i) => (i !== -1 && r[i] != null) ? String(r[i]).trim() : '';
-        const posVal = get(idx.position);
-        if (posVal) uniqueSpecNames.add(posVal);
+        const teamVal = get(idx.teamDivision);
+        if (teamVal) uniqueSpecNames.add(teamVal);
       }
 
       for (const specName of uniqueSpecNames) {
@@ -508,7 +508,7 @@ export default function Students() {
       }
       // ───────────────────────────────────────────────────────────────────────
 
-      const concurrency = 15;
+      const concurrency = 5;
       for (let i = 0; i < validRows.length; i += concurrency) {
         const chunk = validRows.slice(i, i + concurrency);
 
@@ -536,10 +536,10 @@ export default function Students() {
             payload.groupId = groupCache[brigadeKey];
           }
 
-          // Ixtisoslikka biriktirish — position nomidan specializationId topamiz
-          const posKey = get(idx.position);
-          if (posKey && specCache[posKey]) {
-            payload.specializationId = specCache[posKey];
+          // Ixtisoslikka biriktirish — teamDivision (Ekip Dagilimi) nomidan specializationId topamiz
+          const teamKey = get(idx.teamDivision);
+          if (teamKey && specCache[teamKey]) {
+            payload.specializationId = specCache[teamKey];
           }
 
           const rawRate = get(idx.hourlyRate);
@@ -567,7 +567,7 @@ export default function Students() {
         }));
 
         setImportProgress({ current: Math.min(i + concurrency, validRows.length), total: validRows.length });
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       setImportProgress(null);
