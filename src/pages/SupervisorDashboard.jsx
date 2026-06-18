@@ -703,6 +703,28 @@ export default function SupervisorDashboard() {
               </IconButton>
             </Box>
 
+            {/* Scan Feedback State Messages inside Journal */}
+            {scanResult && (
+              <Alert 
+                icon={<CheckCircleOutlinedIcon fontSize="inherit" />} 
+                severity="success" 
+                sx={{ borderRadius: '12px' }}
+                onClose={() => setScanResult(null)}
+              >
+                {scanResult.workerName ? (
+                  <strong>"{scanResult.workerName}" отмечен: {getStatusLabel(scanResult.status)}</strong>
+                ) : (
+                  scanResult.message || 'Успешно зарегистрировано!'
+                )}
+              </Alert>
+            )}
+
+            {errorMsg && (
+              <Alert severity="error" sx={{ borderRadius: '12px' }} onClose={() => setErrorMsg('')}>
+                {errorMsg}
+              </Alert>
+            )}
+
             {/* Shift Select & Subtabs Toggle */}
             <Paper elevation={0} sx={{ p: 2, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -950,7 +972,7 @@ export default function SupervisorDashboard() {
         <BottomNavigation
           showLabels
           value={tab}
-          onChange={(e, v) => setTab(v)}
+          onChange={(e, v) => { setTab(v); setScanResult(null); setErrorMsg(''); }}
           sx={{
             height: 64,
             '& .MuiBottomNavigationAction-root': { py: 1 },
