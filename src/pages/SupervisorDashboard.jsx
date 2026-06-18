@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
+import { Html5Qrcode } from 'html5-qrcode';
 import {
   Box, Typography, Button, Paper, TextField, MenuItem, Select, FormControl,
   BottomNavigation, BottomNavigationAction, Chip, Stack, List, ListItem,
@@ -41,6 +42,7 @@ const scanAnimation = keyframes`
 
 export default function SupervisorDashboard() {
   const [tab, setTab] = useState(0); // 0 = Scanner, 1 = Journal, 2 = Stats
+  const [scanMode, setScanMode] = useState('camera'); // 'camera', 'hardware', 'manual'
   const [session, setSession] = useState(1);
   const [status, setStatus] = useState('PRESENT');
   const [qrCode, setQrCode] = useState('');
@@ -50,15 +52,17 @@ export default function SupervisorDashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const inputRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
 
+  // Focus hidden input only in hardware mode to avoid keyboard popups
   useEffect(() => {
     const handleGlobalClick = () => {
-      if (tab === 0 && inputRef.current) {
+      if (tab === 0 && scanMode === 'hardware' && inputRef.current) {
         inputRef.current.focus();
       }
     };
 
-    if (tab === 0) {
+    if (tab === 0 && scanMode === 'hardware') {
       document.addEventListener('click', handleGlobalClick);
       setTimeout(() => {
         if (inputRef.current) {
@@ -69,7 +73,55 @@ export default function SupervisorDashboard() {
     return () => {
       document.removeEventListener('click', handleGlobalClick);
     };
-  }, [tab]);
+  }, [tab, scanMode]);
+
+  // Live camera scan using html5-qrcode
+  useEffect(() => {
+    let isMounted = true;
+    let scanner = null;
+
+    const startCamera = async () => {
+      try {
+        // Double check reader div exists in DOM
+        const el = document.getElementById('reader');
+        if (!el) return;
+
+        scanner = new Html5Qrcode('reader');
+        html5QrCodeRef.current = scanner;
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          (decodedText) => {
+            autoSubmitScan(decodedText);
+          },
+          () => {} // silent error parser
+        );
+      } catch (err) {
+        console.error('Html5Qrcode start failed:', err);
+        if (isMounted) {
+          setErrorMsg('Не удалось запустить камеру. Проверьте разрешения камеры.');
+        }
+      }
+    };
+
+    if (tab === 0 && scanMode === 'camera') {
+      // Give React 150ms to mount the #reader DOM element
+      const timer = setTimeout(() => {
+        startCamera();
+      }, 150);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+        if (scanner) {
+          if (scanner.isScanning) {
+            scanner.stop().catch(err => console.error('Html5Qrcode stop failed:', err));
+          }
+        }
+      };
+    }
+  }, [tab, scanMode]);
 
   // Journal states
   const [journalSession, setJournalSession] = useState(1);
@@ -321,51 +373,212 @@ export default function SupervisorDashboard() {
               />
             </Box>
 
-            {/* Simulated QR Scanning Window */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-              <Paper elevation={0} sx={{
-                position: 'relative',
-                width: 280,
-                height: 280,
-                borderRadius: '24px',
-                border: '3px solid #7b61ff',
-                boxShadow: '0 0 30px rgba(123,97,255,0.5)',
-                backgroundColor: '#0f172a',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                {/* Pulsing Scan Radar */}
-                <Box sx={{
-                  position: 'absolute',
-                  left: 0,
-                  width: '100%',
-                  height: '3px',
-                  background: 'linear-gradient(to bottom, rgba(123,97,255,0), #7b61ff, rgba(123,97,255,0))',
-                  boxShadow: '0 0 15px #7b61ff',
-                  animation: `${scanAnimation} 3.5s linear infinite`
-                }} />
+            {/* Mode selection tabs */}
+            <Box sx={{ display: 'flex', borderRadius: '12px', backgroundColor: '#f1f5f9', p: 0.5, mb: 1 }}>
+              <Button
+                fullWidth
+                onClick={() => { setScanMode('camera'); setScanResult(null); setErrorMsg(''); setQrCode(''); }}
+                sx={{
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  py: 0.8,
+                  backgroundColor: scanMode === 'camera' ? '#fff' : 'transparent',
+                  color: scanMode === 'camera' ? '#7b61ff' : '#64748b',
+                  boxShadow: scanMode === 'camera' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                  '&:hover': { backgroundColor: scanMode === 'camera' ? '#fff' : 'transparent' }
+                }}
+              >
+                Камера
+              </Button>
+              <Button
+                fullWidth
+                onClick={() => { setScanMode('hardware'); setScanResult(null); setErrorMsg(''); setQrCode(''); }}
+                sx={{
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  py: 0.8,
+                  backgroundColor: scanMode === 'hardware' ? '#fff' : 'transparent',
+                  color: scanMode === 'hardware' ? '#7b61ff' : '#64748b',
+                  boxShadow: scanMode === 'hardware' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                  '&:hover': { backgroundColor: scanMode === 'hardware' ? '#fff' : 'transparent' }
+                }}
+              >
+                Сканер (Без клав.)
+              </Button>
+              <Button
+                fullWidth
+                onClick={() => { setScanMode('manual'); setScanResult(null); setErrorMsg(''); setQrCode(''); }}
+                sx={{
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  py: 0.8,
+                  backgroundColor: scanMode === 'manual' ? '#fff' : 'transparent',
+                  color: scanMode === 'manual' ? '#7b61ff' : '#64748b',
+                  boxShadow: scanMode === 'manual' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                  '&:hover': { backgroundColor: scanMode === 'manual' ? '#fff' : 'transparent' }
+                }}
+              >
+                Вручную
+              </Button>
+            </Box>
 
-                {/* Viewfinder brackets */}
-                <Box sx={{
-                  width: 170,
-                  height: 170,
-                  border: '2px solid rgba(255, 255, 255, 0.4)',
-                  borderRadius: '20px',
+            {/* ─── Mode 1: Camera Scan ─── */}
+            {scanMode === 'camera' && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
+                <Paper elevation={0} sx={{
                   position: 'relative',
+                  width: 280,
+                  height: 280,
+                  borderRadius: '24px',
+                  border: '3px solid #7b61ff',
+                  boxShadow: '0 0 30px rgba(123,97,255,0.4)',
+                  backgroundColor: '#0f172a',
+                  overflow: 'hidden',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <QrCodeScannerIcon sx={{ fontSize: 76, color: 'rgba(255,255,255,0.85)' }} />
+                  {/* html5-qrcode video viewport container */}
+                  <Box id="reader" sx={{ width: '100%', height: '100%', '& video': { objectFit: 'cover !important' } }} />
+                  {/* Pulsing Scan Radar overlay */}
+                  <Box sx={{
+                    position: 'absolute',
+                    left: 0,
+                    width: '100%',
+                    height: '3px',
+                    background: 'linear-gradient(to bottom, rgba(123,97,255,0), #7b61ff, rgba(123,97,255,0))',
+                    boxShadow: '0 0 15px #7b61ff',
+                    animation: `${scanAnimation} 3.5s linear infinite`,
+                    pointerEvents: 'none',
+                    zIndex: 10
+                  }} />
+                </Paper>
+              </Box>
+            )}
+
+            {/* ─── Mode 2: Hardware Laser Scanner ─── */}
+            {scanMode === 'hardware' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 1 }}>
+                  <Paper elevation={0} sx={{
+                    position: 'relative',
+                    width: 280,
+                    height: 280,
+                    borderRadius: '24px',
+                    border: '3px solid #64748b',
+                    boxShadow: '0 0 30px rgba(100,116,139,0.3)',
+                    backgroundColor: '#0f172a',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {/* Viewfinder brackets */}
+                    <Box sx={{
+                      width: 170,
+                      height: 170,
+                      border: '2px dashed rgba(255, 255, 255, 0.3)',
+                      borderRadius: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <QrCodeScannerIcon sx={{ fontSize: 76, color: 'rgba(255,255,255,0.7)' }} />
+                    </Box>
+                    <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 650, mt: 2.5, px: 2, textAlign: 'center' }}>
+                      Используйте внешний/аппаратный лазерный сканер
+                    </Typography>
+                  </Paper>
                 </Box>
-                <Typography sx={{ color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 600, mt: 2.5, zIndex: 1 }}>
-                  Наведите камеру на QR-код
+
+                {/* Hardware Scanner Status Indicator */}
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1.5,
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  <Box sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    backgroundColor: '#10b981',
+                    boxShadow: '0 0 10px #10b981',
+                    animation: 'pulse 2s infinite',
+                    '@keyframes pulse': {
+                      '0%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(16, 185, 129, 0.7)' },
+                      '70%': { transform: 'scale(1)', boxShadow: '0 0 0 10px rgba(16, 185, 129, 0)' },
+                      '100%': { transform: 'scale(0.95)', boxShadow: '0 0 0 0 rgba(16, 185, 129, 0)' }
+                    }
+                  }} />
+                  <Typography sx={{ fontWeight: 750, fontSize: '0.82rem', color: '#1e293b' }}>
+                    Готов к приему кодов без клавиатуры
+                  </Typography>
+                </Paper>
+              </Box>
+            )}
+
+            {/* ─── Mode 3: Manual Text Input ─── */}
+            {scanMode === 'manual' && (
+              <Paper elevation={0} sx={{
+                p: 3,
+                my: 1,
+                borderRadius: '20px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: '#fff',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+              }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 750, color: '#334155', fontSize: '0.85rem' }}>
+                  Ввод номера паспорта или QR-кода вручную
                 </Typography>
+                <Box component="form" onSubmit={handleScanSubmit} sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Паспорт или QR-код"
+                    placeholder="Например, U252000006"
+                    value={qrCode}
+                    onChange={(e) => setQrCode(e.target.value)}
+                    sx={{
+                      '& .MuiOutlinedInput-root': { borderRadius: '8px' }
+                    }}
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    disabled={submittingScan}
+                    sx={{
+                      backgroundColor: '#7b61ff',
+                      borderRadius: '8px',
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      px: 3,
+                      '&:hover': { backgroundColor: '#6a50e8' }
+                    }}
+                  >
+                    Ок
+                  </Button>
+                </Box>
               </Paper>
-            </Box>
+            )}
 
             {/* Scan Feedback State Messages */}
             {scanResult && (
@@ -398,10 +611,12 @@ export default function SupervisorDashboard() {
                 overflow: 'hidden'
               }}
             >
-              <TextField
-                inputRef={inputRef}
+              <input
+                ref={inputRef}
+                type="text"
                 value={qrCode}
                 onChange={handleInputChange}
+                inputMode={scanMode === 'hardware' ? 'none' : 'text'}
                 autoFocus
               />
             </Box>
