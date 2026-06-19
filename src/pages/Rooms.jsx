@@ -4,7 +4,7 @@ import {
   Box, Typography, Button, IconButton, Paper, Drawer,
   TextField, Stack, Tooltip, Dialog, DialogContent, MenuItem, Select, FormControl,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Divider,
-  Checkbox, FormControlLabel, DialogTitle, DialogActions
+  Checkbox, FormControlLabel, DialogTitle, DialogActions, Autocomplete, Chip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -54,6 +54,9 @@ export default function Rooms() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [checkToDelete, setCheckToDelete] = useState(null);
 
+  const [allWorkers, setAllWorkers] = useState([]);
+  const [selectedWorkers, setSelectedWorkers] = useState([]);
+
   // Export states
   const ALL_COLUMNS = [
     { key: 'workerName', label: 'Рабочий' },
@@ -79,20 +82,32 @@ export default function Rooms() {
     }
   }
 
+  async function fetchAllWorkers() {
+    try {
+      const res = await api.get('/api/v1/worker');
+      const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setAllWorkers(data.filter(w => w.isActive !== false));
+    } catch (e) {
+      console.error('Failed to fetch workers:', e);
+    }
+  }
+
   useEffect(() => {
     getChecks();
+    fetchAllWorkers();
   }, []);
 
   function openCreateDrawer() {
     // Default payment date is today
     const todayStr = new Date().toISOString().split('T')[0];
     setForm({ passport: '', paidAt: todayStr, numberOfMonths: 1 });
+    setSelectedWorkers([]);
     setIsDrawerOpen(true);
   }
 
   async function handleSubmit() {
-    if (!form.passport.trim()) {
-      alert('Пожалуйста, введите серию и номер паспорта');
+    if (selectedWorkers.length === 0) {
+      alert('Пожалуйста, выберите хотя бы одного рабочего');
       return;
     }
     if (!form.paidAt) {
@@ -101,15 +116,29 @@ export default function Rooms() {
     }
 
     try {
-      await api.post('/api/v1/check', {
-        passport: form.passport.trim(),
+      const passports = selectedWorkers.map(w => w.passport).filter(Boolean);
+      if (passports.length === 0) {
+        alert('У выбранных рабочих не заполнены данные паспорта');
+        return;
+      }
+
+      const res = await api.post('/api/v1/check/bulk', {
+        passports,
         paidAt: new Date(form.paidAt).toISOString(),
         numberOfMonths: Number(form.numberOfMonths)
       });
+
+      if (res.data?.errors && res.data.errors.length > 0) {
+        const errorList = res.data.errors.map(err => `${err.passport}: ${err.message}`).join('\n');
+        alert(`Обработано чеков: ${res.data.results?.length || 0} успешно, ${res.data.errors.length} с ошибками.\n\nОшибки:\n${errorList}`);
+      } else {
+        alert('Все чеки успешно зарегистрированы');
+      }
+
       getChecks();
       setIsDrawerOpen(false);
     } catch (e) {
-      alert('Ошибка: ' + (e.response?.data?.message || 'Не удалось зарегистрировать чек'));
+      alert('Ошибка: ' + (e.response?.data?.message || 'Не удалось зарегистрировать чеки'));
     }
   }
 
@@ -476,26 +505,47 @@ export default function Rooms() {
       >
         <Box sx={{ p: { xs: 3, sm: 4 }, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>Регистрация чека</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>Регистрация чеков</Typography>
             <IconButton onClick={() => setIsDrawerOpen(false)}>
               <CloseIcon />
             </IconButton>
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-            Введите данные платежного чека патентного налога для рабочего.
+            Выберите рабочих и введите данные платежного чека патентного налога.
           </Typography>
 
           <Stack spacing={3} sx={{ flex: 1 }}>
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>
-                Паспорт рабочего (серия и номер) *
+                Выберите рабочих (одного или нескольких) *
               </Typography>
-              <TextField
-                fullWidth
-                placeholder="Например: AB1234567"
-                value={form.passport}
-                onChange={e => setForm(p => ({ ...p, passport: e.target.value }))}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              <Autocomplete
+                multiple
+                size="small"
+                options={allWorkers}
+                getOptionLabel={(w) => `${w.fullName} (${w.passport || 'Без паспорта'})`}
+                value={selectedWorkers}
+                onChange={(e, v) => setSelectedWorkers(v)}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Поиск по имени или паспорту..."
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#fff' } }}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      key={option.id}
+                      variant="outlined"
+                      label={option.fullName}
+                      size="small"
+                      {...getTagProps({ index })}
+                      sx={{ borderRadius: '6px' }}
+                    />
+                  ))
+                }
               />
             </Box>
 
