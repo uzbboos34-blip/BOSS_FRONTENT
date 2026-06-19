@@ -78,6 +78,7 @@ export default function Attendance() {
   const [regDate, setRegDate] = useState(new Date().toISOString().split('T')[0]);
   const [regSession, setRegSession] = useState(1);
   const [regStatus, setRegStatus] = useState('PRESENT');
+  const [regNote, setRegNote] = useState('');
   const [submittingReg, setSubmittingReg] = useState(false);
 
   // Edit states
@@ -85,6 +86,7 @@ export default function Attendance() {
   const [editingLog, setEditingLog] = useState(null);
   const [editSession, setEditSession] = useState(1);
   const [editStatus, setEditStatus] = useState('PRESENT');
+  const [editNote, setEditNote] = useState('');
   const [submittingEdit, setSubmittingEdit] = useState(false);
 
   // Delete states
@@ -196,7 +198,7 @@ export default function Attendance() {
 
   // Operations
   const handleExportCSV = () => {
-    const headers = ['Рабочий', 'Паспорт', 'Группа', 'Дата', 'Смена', 'Статус', 'Кто отметил'];
+    const headers = ['Рабочий', 'Паспорт', 'Примечание', 'Группа', 'Дата', 'Смена', 'Статус', 'Кто отметил'];
     const sessionNames = { 1: 'Утро', 2: 'Обед', 3: 'Вечер' };
     const statusNames = {
       PRESENT: 'Присутствует',
@@ -209,6 +211,7 @@ export default function Attendance() {
     const rows = logs.map(l => [
       l.worker?.fullName || '',
       l.worker?.passport || '',
+      l.note || '',
       l.worker?.group?.name || '',
       l.date ? new Date(l.date).toLocaleDateString('ru-RU') : '',
       sessionNames[l.session] || l.session,
@@ -380,6 +383,7 @@ export default function Attendance() {
     setRegDate(new Date().toISOString().split('T')[0]);
     setRegSession(1);
     setRegStatus('PRESENT');
+    setRegNote('');
     setRegisterOpen(true);
   };
 
@@ -394,7 +398,8 @@ export default function Attendance() {
         qrCode: selectedWorker.qrCode,
         status: regStatus,
         session: Number(regSession),
-        date: new Date(regDate).toISOString()
+        date: new Date(regDate).toISOString(),
+        note: regNote.trim() || undefined
       });
       getLogs();
       setRegisterOpen(false);
@@ -409,6 +414,7 @@ export default function Attendance() {
     setEditingLog(log);
     setEditSession(log.session);
     setEditStatus(log.status);
+    setEditNote(log.note || '');
     setEditOpen(true);
   };
 
@@ -418,7 +424,8 @@ export default function Attendance() {
     try {
       await api.put(`/api/v1/attendance/${editingLog.id}`, {
         status: editStatus,
-        session: Number(editSession)
+        session: Number(editSession),
+        note: editNote.trim() || null
       });
       getLogs();
       setEditOpen(false);
@@ -750,7 +757,7 @@ export default function Attendance() {
               <Table size="small">
                 <TableHead sx={{ backgroundColor: '#f9fafb' }}>
                   <TableRow>
-                    {['Рабочий', 'Серия/номер паспорта', 'Дата', 'Сессия', 'Статус', 'Кто отметил', 'Действия'].map(col => (
+                    {['Рабочий', 'Серия/номер паспорта', 'Примечание', 'Дата', 'Сессия', 'Статус', 'Кто отметил', 'Действия'].map(col => (
                       <TableCell key={col} sx={{ py: 1.5, fontWeight: 700, color: '#4b5563', fontSize: '0.75rem', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                         {col}
                       </TableCell>
@@ -760,16 +767,19 @@ export default function Attendance() {
                 <TableBody>
                   {loadingLogs ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 6, color: '#9ca3af' }}>Загрузка логов посещаемости...</TableCell>
+                      <TableCell colSpan={8} align="center" sx={{ py: 6, color: '#9ca3af' }}>Загрузка логов посещаемости...</TableCell>
                     </TableRow>
                   ) : paginatedLogs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 6, color: '#9ca3af' }}>Записи не найдены</TableCell>
+                      <TableCell colSpan={8} align="center" sx={{ py: 6, color: '#9ca3af' }}>Записи не найдены</TableCell>
                     </TableRow>
                   ) : paginatedLogs.map((log) => (
                     <TableRow key={log.id} hover>
                       <TableCell sx={{ fontWeight: 600, fontSize: '0.82rem', py: 1.2 }}>{log.worker?.fullName || '—'}</TableCell>
                       <TableCell sx={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{log.worker?.passport || '—'}</TableCell>
+                      <TableCell sx={{ fontSize: '0.8rem', color: '#475569', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {log.note || '—'}
+                      </TableCell>
                       <TableCell sx={{ fontSize: '0.8rem' }}>{formatDate(log.date)}</TableCell>
                       <TableCell sx={{ fontSize: '0.8rem' }}>{getSessionLabel(log.session)}</TableCell>
                       <TableCell sx={{ fontSize: '0.8rem' }}>{getStatusChip(log.status)}</TableCell>
@@ -1003,6 +1013,23 @@ export default function Attendance() {
               </Select>
             </FormControl>
           </Box>
+
+          {/* Note Input */}
+          <Box>
+            <Typography sx={{ mb: 1, fontWeight: 600, fontSize: '0.82rem', color: '#374151' }}>
+              Примечание / Причина
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={2}
+              size="small"
+              placeholder="Укажите причину или примечание..."
+              value={regNote}
+              onChange={(e) => setRegNote(e.target.value)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }}
+            />
+          </Box>
         </Box>
 
         {/* Drawer Footer */}
@@ -1066,6 +1093,20 @@ export default function Attendance() {
                   ))}
                 </Select>
               </FormControl>
+            </Box>
+
+            <Box>
+              <Typography sx={{ mb: 1, fontWeight: 600, fontSize: '0.82rem', color: '#374151' }}>Примечание / Причина</Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                size="small"
+                placeholder="Укажите причину или примечание..."
+                value={editNote}
+                onChange={(e) => setEditNote(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }}
+              />
             </Box>
           </Box>
         </DialogContent>
