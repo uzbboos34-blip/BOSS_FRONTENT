@@ -175,27 +175,27 @@ export default function Students() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const ALL_COLUMNS = [
-    { key: 'centerNo',        label: 'Merkez No' },
-    { key: 'passport',        label: 'Pasaport No' },
-    { key: 'constructionSite',label: 'Şantiye' },
-    { key: 'sicilNo',         label: 'Sicil No' },
-    { key: 'fullName',        label: 'Ad Soyad' },
-    { key: 'fullNameRu',      label: 'Ф.И.О.' },
-    { key: 'position',        label: 'Görev Adı' },
+    { key: 'centerNo',        label: 'Номер центра' },
+    { key: 'passport',        label: 'Серия/номер паспорта' },
+    { key: 'constructionSite',label: 'Строительный участок' },
+    { key: 'sicilNo',         label: 'Регистрационный номер' },
+    { key: 'fullName',        label: 'Имя Фамилия' },
+    { key: 'fullNameRu',      label: 'Ф.И.О. (RU)' },
+    { key: 'position',        label: 'Должность' },
     { key: 'citizenship',     label: 'Гражданство' },
-    { key: 'startDate',       label: 'Giriş Tarihi' },
-    { key: 'hourlyRate',      label: 'Saatlik Ücret' },
-    { key: 'teamDivision',    label: 'Ekip Dagilimi' },
-    { key: 'department',      label: 'Departman' },
-    { key: 'phone',           label: 'TEL №' },
+    { key: 'startDate',       label: 'Дата входа' },
+    { key: 'hourlyRate',      label: 'Почасовая ставка' },
+    { key: 'teamDivision',    label: 'Подразделение бригады' },
+    { key: 'department',      label: 'Отдел' },
+    { key: 'phone',           label: 'Телефон' },
     { key: 'birthDate',       label: 'Дата рождения' },
-    { key: 'remainingPatentDays', label: 'KUN' },
+    { key: 'remainingPatentDays', label: 'Дней патента' },
     { key: 'patentNo',        label: 'Патент №' },
     { key: 'patentStartDate', label: 'Дата выдачи патента' },
-    { key: 'patentEndDate',   label: 'Patent Bitis Tarihi' },
-    { key: 'inn',             label: 'INN' },
-    { key: 'qrCode',          label: 'Киг' },
-    { key: 'campAddress',     label: 'Camp VE Oturum yeri' },
+    { key: 'patentEndDate',   label: 'Дата окончания патента' },
+    { key: 'inn',             label: 'ИНН' },
+    { key: 'qrCode',          label: 'QR-код' },
+    { key: 'campAddress',     label: 'Адрес проживания' },
     { key: 'gender',          label: 'Пол' },
   ];
   const [selectedColumns, setSelectedColumns] = useState(ALL_COLUMNS.map(c => c.key));
@@ -776,7 +776,7 @@ export default function Students() {
         PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}
       >
         <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>
-          Qaysi ustunlarni export qilish?
+          Какие столбцы экспортировать?
           <IconButton onClick={() => setExportDialogOpen(false)} sx={{ position: 'absolute', right: 12, top: 12, color: '#9ca3af' }}>
             <CloseIcon fontSize="small" />
           </IconButton>
@@ -785,11 +785,11 @@ export default function Students() {
           <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
             <Button size="small" sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#7b61ff' }}
               onClick={() => setSelectedColumns(ALL_COLUMNS.map(c => c.key))}>
-              Hammasini tanlash
+              Выбрать все
             </Button>
             <Button size="small" sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#ef4444' }}
               onClick={() => setSelectedColumns([])}>
-              Bekor qilish
+              Сбросить
             </Button>
           </Stack>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
@@ -817,7 +817,7 @@ export default function Students() {
         <DialogActions sx={{ px: 2, pb: 2, pt: 1.5, gap: 1 }}>
           <Button onClick={() => setExportDialogOpen(false)}
             sx={{ textTransform: 'none', color: '#6b7280', fontWeight: 600 }}>
-            Bekor
+            Отмена
           </Button>
           <Button
             variant="contained"
@@ -826,7 +826,7 @@ export default function Students() {
             sx={{ textTransform: 'none', backgroundColor: '#16a34a', fontWeight: 600,
               boxShadow: 'none', '&:hover': { backgroundColor: '#15803d', boxShadow: 'none' } }}
           >
-            Export ({selectedIds.length > 0 ? `${selectedIds.length} ta qator` : 'Hammasi'})
+            Экспорт ({selectedIds.length > 0 ? `${selectedIds.length} строк` : 'Все'})
           </Button>
         </DialogActions>
       </Dialog>

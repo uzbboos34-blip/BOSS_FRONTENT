@@ -53,6 +53,19 @@ export default function Rooms() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [checkToDelete, setCheckToDelete] = useState(null);
 
+  // Export states
+  const ALL_COLUMNS = [
+    { key: 'workerName', label: 'Рабочий' },
+    { key: 'passport', label: 'Серия/номер паспорта' },
+    { key: 'paidAt', label: 'Дата оплаты' },
+    { key: 'validFrom', label: 'Действителен с' },
+    { key: 'validUntil', label: 'Действителен до' },
+    { key: 'numberOfMonths', label: 'Оплачено месяцев' },
+    { key: 'createdBy', label: 'Кем добавлен' },
+  ];
+  const [selectedColumns, setSelectedColumns] = useState(ALL_COLUMNS.map(c => c.key));
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   async function getChecks() {
     setLoading(true);
     try {
@@ -125,17 +138,27 @@ export default function Rooms() {
     });
   };
   const handleExportCSV = () => {
-    const headers = ['Рабочий', 'Серия/номер паспорта', 'Дата оплаты', 'Действителен с', 'Действителен до', 'Оплачено месяцев', 'Кем добавлен'];
+    setExportDialogOpen(true);
+  };
 
-    const rows = filteredChecks.map(c => [
-      c.worker?.fullName || '',
-      c.worker?.passport || '',
-      c.paidAt ? new Date(c.paidAt).toLocaleDateString('ru-RU') : '',
-      c.validFrom ? new Date(c.validFrom).toLocaleDateString('ru-RU') : '',
-      c.validUntil ? new Date(c.validUntil).toLocaleDateString('ru-RU') : '',
-      c.numberOfMonths || 1,
-      c.createdBy || ''
-    ]);
+  const doExportCSV = () => {
+    const cols = ALL_COLUMNS.filter(c => selectedColumns.includes(c.key));
+    const headers = cols.map(c => c.label);
+
+    const getCellValue = (c, colKey) => {
+      switch (colKey) {
+        case 'workerName': return c.worker?.fullName || '';
+        case 'passport': return c.worker?.passport || '';
+        case 'paidAt': return c.paidAt ? new Date(c.paidAt).toLocaleDateString('ru-RU') : '';
+        case 'validFrom': return c.validFrom ? new Date(c.validFrom).toLocaleDateString('ru-RU') : '';
+        case 'validUntil': return c.validUntil ? new Date(c.validUntil).toLocaleDateString('ru-RU') : '';
+        case 'numberOfMonths': return c.numberOfMonths || 1;
+        case 'createdBy': return c.createdBy || '';
+        default: return '';
+      }
+    };
+
+    const rows = filteredChecks.map(c => cols.map(col => getCellValue(c, col.key)));
 
     const csvContent = [
       headers.join(','),
@@ -156,6 +179,7 @@ export default function Rooms() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setExportDialogOpen(false);
   };
 
   const handleImportCSV = (event) => {
@@ -620,6 +644,66 @@ export default function Rooms() {
             </Stack>
           </Box>
         </DialogContent>
+      </Dialog>
+
+      {/* ─── Export Column Picker Dialog ─── */}
+      <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>
+          Какие столбцы экспортировать?
+          <IconButton onClick={() => setExportDialogOpen(false)} sx={{ position: 'absolute', right: 12, top: 12, color: '#9ca3af' }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ py: 1 }}>
+          <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Button size="small" sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#7b61ff' }}
+              onClick={() => setSelectedColumns(ALL_COLUMNS.map(c => c.key))}>
+              Выбрать все
+            </Button>
+            <Button size="small" sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#ef4444' }}
+              onClick={() => setSelectedColumns([])}>
+              Сбросить
+            </Button>
+          </Stack>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+            {ALL_COLUMNS.map(col => (
+              <FormControlLabel
+                key={col.key}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={selectedColumns.includes(col.key)}
+                    onChange={(e) => {
+                      setSelectedColumns(prev =>
+                        e.target.checked ? [...prev, col.key] : prev.filter(k => k !== col.key)
+                      );
+                    }}
+                    sx={{ '&.Mui-checked': { color: '#7b61ff' }, p: 0.5 }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '0.78rem', color: '#374151' }}>{col.label}</Typography>}
+                sx={{ m: 0, py: 0.25 }}
+              />
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, pt: 1.5, gap: 1 }}>
+          <Button onClick={() => setExportDialogOpen(false)}
+            sx={{ textTransform: 'none', color: '#6b7280', fontWeight: 600 }}>
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            disabled={selectedColumns.length === 0}
+            onClick={doExportCSV}
+            sx={{ textTransform: 'none', backgroundColor: '#16a34a', fontWeight: 600,
+              boxShadow: 'none', '&:hover': { backgroundColor: '#15803d', boxShadow: 'none' } }}
+          >
+            Экспорт
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

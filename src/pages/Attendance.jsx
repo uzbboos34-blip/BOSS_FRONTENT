@@ -110,6 +110,20 @@ export default function Attendance() {
   const [showPasteArea, setShowPasteArea] = useState(false);
   const [pastedList, setPastedList] = useState('');
 
+  // Export states
+  const ALL_COLUMNS = [
+    { key: 'workerName', label: 'Рабочий' },
+    { key: 'passport', label: 'Серия/номер паспорта' },
+    { key: 'note', label: 'Примечание' },
+    { key: 'group', label: 'Группа' },
+    { key: 'date', label: 'Дата' },
+    { key: 'session', label: 'Смена' },
+    { key: 'status', label: 'Статус' },
+    { key: 'createdBy', label: 'Кто отметил' },
+  ];
+  const [selectedColumns, setSelectedColumns] = useState(ALL_COLUMNS.map(c => c.key));
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   // Helper fetchers
   async function fetchSupervisors() {
     try {
@@ -198,7 +212,10 @@ export default function Attendance() {
 
   // Operations
   const handleExportCSV = () => {
-    const headers = ['Рабочий', 'Паспорт', 'Примечание', 'Группа', 'Дата', 'Смена', 'Статус', 'Кто отметил'];
+    setExportDialogOpen(true);
+  };
+
+  const doExportCSV = () => {
     const sessionNames = { 1: 'Утро', 2: 'Обед', 3: 'Вечер' };
     const statusNames = {
       PRESENT: 'Присутствует',
@@ -208,16 +225,24 @@ export default function Attendance() {
       SICK: 'Болеет'
     };
 
-    const rows = logs.map(l => [
-      l.worker?.fullName || '',
-      l.worker?.passport || '',
-      l.note || '',
-      l.worker?.group?.name || '',
-      l.date ? new Date(l.date).toLocaleDateString('ru-RU') : '',
-      sessionNames[l.session] || l.session,
-      statusNames[l.status] || l.status,
-      l.createdBy || ''
-    ]);
+    const cols = ALL_COLUMNS.filter(c => selectedColumns.includes(c.key));
+    const headers = cols.map(c => c.label);
+
+    const getCellValue = (l, colKey) => {
+      switch (colKey) {
+        case 'workerName': return l.worker?.fullName || '';
+        case 'passport': return l.worker?.passport || '';
+        case 'note': return l.note || '';
+        case 'group': return l.worker?.group?.name || '';
+        case 'date': return l.date ? new Date(l.date).toLocaleDateString('ru-RU') : '';
+        case 'session': return sessionNames[l.session] || l.session;
+        case 'status': return statusNames[l.status] || l.status;
+        case 'createdBy': return l.supervisor?.fullName || l.createdBy || 'Система';
+        default: return '';
+      }
+    };
+
+    const rows = logs.map(l => cols.map(c => getCellValue(l, c.key)));
 
     const csvContent = [
       headers.join(','),
@@ -238,6 +263,7 @@ export default function Attendance() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setExportDialogOpen(false);
   };
 
   const handleImportCSV = (event) => {
@@ -1328,6 +1354,66 @@ export default function Attendance() {
           </Button>
           <Button variant="contained" onClick={handleAssign} disabled={savingAssign} sx={{ backgroundColor: '#7b61ff', borderRadius: '8px', textTransform: 'none', px: 3, '&:hover': { backgroundColor: '#6a50e8' } }}>
             {savingAssign ? 'Сохранение...' : 'Закрепить'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ─── Export Column Picker Dialog ─── */}
+      <Dialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>
+          Какие столбцы экспортировать?
+          <IconButton onClick={() => setExportDialogOpen(false)} sx={{ position: 'absolute', right: 12, top: 12, color: '#9ca3af' }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ py: 1 }}>
+          <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Button size="small" sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#7b61ff' }}
+              onClick={() => setSelectedColumns(ALL_COLUMNS.map(c => c.key))}>
+              Выбрать все
+            </Button>
+            <Button size="small" sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#ef4444' }}
+              onClick={() => setSelectedColumns([])}>
+              Сбросить
+            </Button>
+          </Stack>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+            {ALL_COLUMNS.map(col => (
+              <FormControlLabel
+                key={col.key}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={selectedColumns.includes(col.key)}
+                    onChange={(e) => {
+                      setSelectedColumns(prev =>
+                        e.target.checked ? [...prev, col.key] : prev.filter(k => k !== col.key)
+                      );
+                    }}
+                    sx={{ '&.Mui-checked': { color: '#7b61ff' }, p: 0.5 }}
+                  />
+                }
+                label={<Typography sx={{ fontSize: '0.78rem', color: '#374151' }}>{col.label}</Typography>}
+                sx={{ m: 0, py: 0.25 }}
+              />
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, pt: 1.5, gap: 1 }}>
+          <Button onClick={() => setExportDialogOpen(false)}
+            sx={{ textTransform: 'none', color: '#6b7280', fontWeight: 600 }}>
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            disabled={selectedColumns.length === 0}
+            onClick={doExportCSV}
+            sx={{ textTransform: 'none', backgroundColor: '#16a34a', fontWeight: 600,
+              boxShadow: 'none', '&:hover': { backgroundColor: '#15803d', boxShadow: 'none' } }}
+          >
+            Экспорт
           </Button>
         </DialogActions>
       </Dialog>
