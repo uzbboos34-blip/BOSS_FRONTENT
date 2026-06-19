@@ -523,10 +523,10 @@ export default function Rooms() {
                 multiple
                 size="small"
                 options={allWorkers}
-                getOptionLabel={(w) => `${w.fullName} (${w.passport || 'Без паспорта'})`}
+                getOptionLabel={(w) => w ? `${w.fullName || ''} (${w.passport || 'Без паспорта'})` : ''}
                 value={selectedWorkers}
                 onChange={(e, v) => setSelectedWorkers(v)}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
+                isOptionEqualToValue={(option, value) => option && value && option.id === value.id}
                 renderInput={(params) => (
                   <TextField
                     {...params}
@@ -534,18 +534,6 @@ export default function Rooms() {
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#fff' } }}
                   />
                 )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip
-                      key={option.id}
-                      variant="outlined"
-                      label={option.fullName}
-                      size="small"
-                      {...getTagProps({ index })}
-                      sx={{ borderRadius: '6px' }}
-                    />
-                  ))
-                }
               />
             </Box>
 
