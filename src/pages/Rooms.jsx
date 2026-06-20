@@ -48,6 +48,7 @@ export default function Rooms() {
   const [form, setForm] = useState({ passport: '', paidAt: '', numberOfMonths: 1 });
   const [checks, setChecks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingWorkers, setLoadingWorkers] = useState(false);
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -115,18 +116,20 @@ export default function Rooms() {
   }
 
   async function fetchAllWorkers() {
+    setLoadingWorkers(true);
     try {
       const res = await api.get('/api/v1/worker');
       const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       setAllWorkers(data.filter(w => w.isActive !== false));
     } catch (e) {
       console.error('Failed to fetch workers:', e);
+    } finally {
+      setLoadingWorkers(false);
     }
   }
 
   useEffect(() => {
     getChecks();
-    fetchAllWorkers();
   }, []);
 
   function openCreateDrawer() {
@@ -135,6 +138,7 @@ export default function Rooms() {
     setForm({ passport: '', paidAt: todayStr, numberOfMonths: 1 });
     setSelectedWorkers([]);
     setWorkerSearchQuery('');
+    fetchAllWorkers();
     setIsDrawerOpen(true);
   }
 
@@ -592,7 +596,11 @@ export default function Rooms() {
                 bgcolor: '#f9fafb',
                 p: 1
               }}>
-                {filteredWorkersForSelection.length === 0 ? (
+                {loadingWorkers ? (
+                  <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
+                    Загрузка списка рабочих...
+                  </Typography>
+                ) : filteredWorkersForSelection.length === 0 ? (
                   <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
                     Рабочие не найдены
                   </Typography>
