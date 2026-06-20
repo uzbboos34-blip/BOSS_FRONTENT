@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, Drawer, useMediaQuery } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemButton, ListItemIcon, ListItemText, IconButton, Drawer, useMediaQuery, BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { keyframes } from '@mui/system';
 import { Outlet, useLocation, NavLink, useNavigate } from 'react-router-dom';
@@ -9,6 +9,16 @@ import BookIcon from '@mui/icons-material/Book';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import HistoryIcon from '@mui/icons-material/History';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+
+// Navigation Icons
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import PeopleIcon from '@mui/icons-material/People';
+import GroupsIcon from '@mui/icons-material/Groups';
+import SchoolIcon from '@mui/icons-material/School';
+import SettingsIcon from '@mui/icons-material/Settings';
+import PaymentsIcon from '@mui/icons-material/Payments';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -103,6 +113,42 @@ export default function DashboardLayout() {
   const isManagementActive = location.pathname.startsWith('/management');
   const isStudentLessonDetail = /^\/student\/groups\/[^/]+\/lessons\/[^/]+$/.test(location.pathname);
 
+  // Define mobile navigation items based on role
+  let navItems = [];
+  if (userRole === 'STUDENT') {
+    navItems = [
+      { label: 'Главная', icon: <DashboardIcon />, path: '/student/dashboard' },
+      { label: 'Оплаты', icon: <PaymentsIcon />, path: '/student/payments' },
+      { label: 'Бригады', icon: <GroupsIcon />, path: '/student/groups' },
+      { label: 'Рейтинг', icon: <WorkspacePremiumIcon />, path: '/student/rating' },
+      { label: 'Настройки', icon: <SettingsIcon />, path: '/student/settings' },
+    ];
+  } else if (userRole === 'TEACHER') {
+    navItems = [
+      { label: 'Бригады', icon: <GroupsIcon />, path: '/groups' },
+      { label: 'Профиль', icon: <AccountCircleIcon />, path: '/profile' },
+    ];
+  } else {
+    navItems = [
+      { label: 'Главная', icon: <DashboardIcon />, path: userRole === 'SUPERVISOR' ? '/supervisor/dashboard' : '/dashboard' },
+      { label: 'Пользователи', icon: <PeopleIcon />, path: '/users' },
+      { label: 'Бригады', icon: <GroupsIcon />, path: '/groups' },
+      { label: 'Рабочие', icon: <SchoolIcon />, path: '/students' },
+      { label: 'Управление', icon: <SettingsIcon />, path: '/management' },
+    ];
+  }
+
+  const getActiveTabValue = () => {
+    const path = location.pathname;
+    const index = navItems.findIndex(item => {
+      if (item.path === '/management') {
+        return path.startsWith('/management');
+      }
+      return path.startsWith(item.path);
+    });
+    return index !== -1 ? index : 0;
+  };
+
   // Shared Sidebar props
   const sidebarProps = {
     openSettings, setOpenSettings,
@@ -128,7 +174,7 @@ export default function DashboardLayout() {
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 260 },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 280 },
         }}
       >
         <Sidebar {...sidebarProps} />
@@ -210,6 +256,7 @@ export default function DashboardLayout() {
         </Box>
         <Box sx={{ 
           p: isStudentLessonDetail ? 0 : { xs: 2, sm: isManagementActive ? 4 : 3 }, 
+          pb: isStudentLessonDetail ? 0 : { xs: '80px', md: isManagementActive ? 4 : 3 },
           flexGrow: 1, 
           overflowY: isStudentLessonDetail ? 'hidden' : 'auto',
           backgroundColor: isStudentLessonDetail ? '#f5f6fa' : (isManagementActive ? '#f9fafb' : '#f5f6fa'),
@@ -221,6 +268,34 @@ export default function DashboardLayout() {
           <Outlet />
         </Box>
       </Box>
+
+      {/* Mobile Bottom Navigation */}
+      <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, display: { xs: 'flex', md: 'none' } }} elevation={3}>
+        <BottomNavigation
+          showLabels
+          value={getActiveTabValue()}
+          onChange={(event, newValue) => {
+            const path = navItems[newValue].path;
+            navigate(path);
+          }}
+          sx={{ width: '100%' }}
+        >
+          {navItems.map((item, index) => (
+            <BottomNavigationAction
+              key={index}
+              label={item.label}
+              icon={item.icon}
+              sx={{
+                minWidth: 'auto',
+                px: 1,
+                '&.Mui-selected': {
+                  color: userRole === 'STUDENT' ? '#c5a059' : '#7b61ff',
+                }
+              }}
+            />
+          ))}
+        </BottomNavigation>
+      </Paper>
     </Box>
   );
 }

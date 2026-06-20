@@ -400,7 +400,7 @@ export default function Users() {
       </Box>
 
       {/* ─── Table ─── */}
-      <Paper elevation={0} sx={{ border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
         <TableContainer>
           <Table>
             <TableHead sx={{ backgroundColor: '#f9fafb' }}>
@@ -533,19 +533,11 @@ export default function Users() {
                   </Typography>
                 );
               }
+              const isSelected = p === page;
               return (
-                <Button
-                  key={p} size="small"
-                  onClick={() => setPage(p)}
-                  sx={{
-                    minWidth: 32, height: 32, borderRadius: '8px', fontWeight: page === p ? 700 : 400,
-                    backgroundColor: page === p ? '#7b61ff' : 'transparent',
-                    color: page === p ? '#fff' : '#4b5563',
-                    '&:hover': { backgroundColor: page === p ? '#6a50e8' : '#f3f4f6' }
-                  }}
-                >
-                  {p}
-                </Button>
+                <Button key={p} size="small" onClick={() => setPage(p)}
+                  sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: isSelected ? 700 : 400, backgroundColor: isSelected ? '#7b61ff' : 'transparent', color: isSelected ? '#fff' : '#4b5563', '&:hover': { backgroundColor: isSelected ? '#6a50e8' : '#f3f4f6' } }}
+                >{p}</Button>
               );
             })}
           </Box>
@@ -560,6 +552,137 @@ export default function Users() {
         </Box>
       </Paper>
 
+      {/* ─── Mobile Card View ─── */}
+      <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
+        {paginated.length === 0 ? (
+          <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: '16px', color: '#9ca3af' }}>
+            Данные не найдены
+          </Paper>
+        ) : (
+          <Stack spacing={2}>
+            {paginated.map((user) => {
+              const rColor = roleColors[user.role] || '#6b7280';
+              return (
+                <Paper
+                  key={user.id}
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '16px',
+                    backgroundColor: '#ffffff',
+                    position: 'relative'
+                  }}
+                >
+                  {/* Select Checkbox & Name */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Checkbox
+                        size="small"
+                        checked={selectedIds.includes(user.id)}
+                        onChange={() => handleToggleOne(user.id)}
+                        sx={{ p: 0, '&.Mui-checked': { color: '#7b61ff' } }}
+                      />
+                      <Avatar
+                        sx={{ width: 32, height: 32, backgroundColor: rColor, fontSize: '0.75rem', fontWeight: 700 }}
+                      >
+                        {getInitials(user.fullName)}
+                      </Avatar>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111827' }}>
+                        {user.fullName}
+                      </Typography>
+                    </Box>
+
+                    {/* Actions */}
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      {activeTab === 'archive' ? (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => handleRestore(user.id)}
+                          sx={{
+                            textTransform: 'none',
+                            borderRadius: '8px',
+                            fontSize: '0.72rem',
+                            py: 0.3,
+                            px: 1,
+                            borderColor: '#7b61ff',
+                            color: '#7b61ff',
+                            '&:hover': { borderColor: '#6a50e8', color: '#6a50e8' }
+                          }}
+                        >
+                          Восстановить
+                        </Button>
+                      ) : (
+                        <>
+                          <IconButton size="small" onClick={() => openEditDrawer(user)} sx={{ p: 0.5, color: '#9ca3af', '&:hover': { color: '#10b981' } }}>
+                            <EditIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => triggerDelete(user.id)} sx={{ p: 0.5, color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </>
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* Details grid */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, fontSize: '0.82rem' }}>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Телефон</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{user.phone || '—'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Роль</Typography>
+                      <Chip
+                        icon={getRoleIcon(user.role)}
+                        label={roleLabels[user.role] || user.role}
+                        size="small"
+                        sx={{
+                          fontSize: '0.68rem', height: 20, fontWeight: 700,
+                          backgroundColor: `${rColor}12`, color: rColor, border: `1px solid ${rColor}30`, mt: 0.5
+                        }}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Статус</Typography>
+                      <Chip
+                        icon={user.isActive ? <CheckCircleIcon style={{ color: '#10b981', fontSize: 12 }} /> : <BlockIcon style={{ color: '#ef4444', fontSize: 12 }} />}
+                        label={user.isActive ? 'Активен' : (user.isBlocked ? 'Заблокирован' : 'Неактивен')}
+                        size="small"
+                        sx={{
+                          fontSize: '0.68rem', height: 20, fontWeight: 600,
+                          backgroundColor: user.isActive ? '#ecfdf5' : '#fef2f2',
+                          color: user.isActive ? '#10b981' : '#ef4444',
+                          border: `1px solid ${user.isActive ? '#a7f3d0' : '#fca5a5'}`, mt: 0.5
+                        }}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Создан</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{formatDate(user.createdAt)}</Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              );
+            })}
+          </Stack>
+        )}
+
+        {/* Simplified mobile pagination */}
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+          <Button size="small" startIcon={<KeyboardArrowLeftIcon />} disabled={page === 1} onClick={() => setPage(p => p - 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
+            Назад
+          </Button>
+          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#4b5563' }}>
+            Стр. {page} из {totalPages || 1}
+          </Typography>
+          <Button size="small" endIcon={<KeyboardArrowRightIcon />} disabled={page === totalPages} onClick={() => setPage(p => p + 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
+            Далее
+          </Button>
+        </Box>
+      </Box>
+
       {/* ─── Add/Edit User Drawer ─── */}
       <Drawer
         anchor="right" open={isDrawerOpen}
@@ -573,7 +696,7 @@ export default function Users() {
             }
           }
         }}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 260 }, display: 'flex', flexDirection: 'column' } }}
+        PaperProps={{ sx: { width: { xs: '100%', sm: 400 }, display: 'flex', flexDirection: 'column' } }}
       >
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>

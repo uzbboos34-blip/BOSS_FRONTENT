@@ -21,6 +21,8 @@ import BadgeIcon from '@mui/icons-material/Badge';
 import WorkIcon from '@mui/icons-material/Work';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -688,18 +690,19 @@ export default function Students() {
             Список рабочих — паспорт, патент, бригада и специализация.
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1} sx={{ alignSelf: { xs: 'stretch', sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+        <Stack direction="row" spacing={1} sx={{ alignSelf: { xs: 'stretch', sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, justifyContent: 'space-between' }}>
           <Button
             variant="contained" size="small"
             component="label"
             sx={{
               backgroundColor: '#2563eb', color: '#ffffff', textTransform: 'none',
-              borderRadius: '6px', px: 1.5, height: '32px', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap',
-              boxShadow: 'none',
+              borderRadius: '6px', px: { xs: 0, sm: 1.5 }, height: '36px', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap',
+              boxShadow: 'none', flex: { xs: 1, sm: 'none' }, minWidth: { xs: 40, sm: 'auto' },
               '&:hover': { backgroundColor: '#1d4ed8', boxShadow: 'none' }
             }}
           >
-            Импорт
+            <FileUploadIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: '18px' }} />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Импорт</Box>
             <input type="file" hidden onChange={handleImportCSV} />
           </Button>
           <Button
@@ -707,24 +710,26 @@ export default function Students() {
             onClick={() => setExportDialogOpen(true)}
             sx={{
               backgroundColor: '#16a34a', color: '#ffffff', textTransform: 'none',
-              borderRadius: '6px', px: 1.5, height: '32px', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap',
-              boxShadow: 'none',
+              borderRadius: '6px', px: { xs: 0, sm: 1.5 }, height: '36px', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap',
+              boxShadow: 'none', flex: { xs: 1, sm: 'none' }, minWidth: { xs: 40, sm: 'auto' },
               '&:hover': { backgroundColor: '#15803d', boxShadow: 'none' }
             }}
           >
-            Экспорт
+            <FileDownloadIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: '18px' }} />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Экспорт</Box>
           </Button>
           <Button
-            variant="contained" size="small" startIcon={<AddIcon sx={{ fontSize: '16px' }} />}
+            variant="contained" size="small"
             onClick={openCreateDrawer}
             sx={{
               backgroundColor: '#2563eb', textTransform: 'none',
-              borderRadius: '6px', px: 1.5, height: '32px', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap',
-              boxShadow: 'none',
+              borderRadius: '6px', px: { xs: 0, sm: 1.5 }, height: '36px', fontWeight: 600, fontSize: '0.78rem', whiteSpace: 'nowrap',
+              boxShadow: 'none', flex: { xs: 1, sm: 'none' }, minWidth: { xs: 40, sm: 'auto' },
               '&:hover': { backgroundColor: '#1d4ed8', boxShadow: 'none' }
             }}
           >
-            Рабочий
+            <AddIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: '18px' }} />
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Рабочий</Box>
           </Button>
         </Stack>
       </Box>
@@ -790,18 +795,18 @@ export default function Students() {
       </Dialog>
 
       {/* ─── Stat Cards ─── */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5, mb: 3 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: { xs: 1, sm: 2.5 }, mb: 3 }}>
         {[
-          { label: 'Всего рабочих', value: stats.total, icon: <PeopleAltIcon sx={{ fontSize: 28, color: '#7b61ff' }} />, bg: '#f0eeff' },
-          { label: 'Активных', value: stats.active, icon: <WorkIcon sx={{ fontSize: 28, color: '#10b981' }} />, bg: '#ecfdf5' },
-          { label: 'В архиве', value: stats.archive, icon: <AssignmentIndIcon sx={{ fontSize: 28, color: '#f59e0b' }} />, bg: '#fffbeb' },
+          { label: 'Всего рабочих', value: stats.total, icon: <PeopleAltIcon sx={{ fontSize: { xs: 18, md: 28 }, color: '#7b61ff' }} />, bg: '#f0eeff' },
+          { label: 'Активных', value: stats.active, icon: <WorkIcon sx={{ fontSize: { xs: 18, md: 28 }, color: '#10b981' }} />, bg: '#ecfdf5' },
+          { label: 'В архиве', value: stats.archive, icon: <AssignmentIndIcon sx={{ fontSize: { xs: 18, md: 28 }, color: '#f59e0b' }} />, bg: '#fffbeb' },
         ].map((card, i) => (
-          <Paper key={i} elevation={0} sx={{ p: 3, border: '1px solid #e5e7eb', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Paper key={i} elevation={0} sx={{ p: { xs: 1.5, md: 3 }, border: '1px solid #e5e7eb', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Box>
-              <Typography sx={{ fontSize: '0.8rem', color: '#6b7280', mb: 1 }}>{card.label}</Typography>
-              <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: '#111827', lineHeight: 1 }}>{card.value}</Typography>
+              <Typography sx={{ fontSize: { xs: '0.65rem', md: '0.8rem' }, color: '#6b7280', mb: 0.5 }}>{card.label}</Typography>
+              <Typography sx={{ fontSize: { xs: '1.25rem', md: '2rem' }, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{card.value}</Typography>
             </Box>
-            <Box sx={{ width: 48, height: 48, borderRadius: '12px', backgroundColor: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box sx={{ width: { xs: 32, md: 48 }, height: { xs: 32, md: 48 }, borderRadius: { xs: '8px', md: '12px' }, backgroundColor: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {card.icon}
             </Box>
           </Paper>
@@ -896,7 +901,7 @@ export default function Students() {
       </Box>
 
       {/* ─── Table ─── */}
-      <Paper elevation={0} sx={{ border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 2600, borderCollapse: 'separate', borderSpacing: '0 8px', px: 1 }}>
             <TableHead sx={{ backgroundColor: '#f9fafb' }}>
@@ -1023,11 +1028,7 @@ export default function Students() {
           <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
             {getPaginationRange(page, totalPages).map((p, index) => {
               if (p === '...') {
-                return (
-                  <Typography key={`ell-${index}`} sx={{ px: 1, color: '#6b7280', fontSize: '0.875rem' }}>
-                    ...
-                  </Typography>
-                );
+                return <Typography key={index} sx={{ px: 1, color: '#9ca3af', fontSize: '0.875rem' }}>...</Typography>;
               }
               return (
                 <Button key={p} size="small" onClick={() => setPage(p)}
@@ -1041,6 +1042,108 @@ export default function Students() {
           </Button>
         </Box>
       </Paper>
+
+      {/* ─── Mobile Card View ─── */}
+      <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
+        {paginated.length === 0 ? (
+          <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: '16px', color: '#9ca3af' }}>
+            Данные не найдены
+          </Paper>
+        ) : (
+          <Stack spacing={2}>
+            {paginated.map((worker) => {
+              const rowStyle = getRowStyle(worker.remainingPatentDays);
+              const cardBg = rowStyle.bgcolor || '#ffffff';
+              const cardColor = rowStyle.color || '#111827';
+              const groupName = groups.find(g => String(g.id) === String(worker.groupId))?.name || '—';
+              const specName = specializations.find(s => String(s.id) === String(worker.specializationId))?.name || '—';
+
+              return (
+                <Paper
+                  key={worker.id}
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '16px',
+                    backgroundColor: cardBg,
+                    color: cardColor,
+                    position: 'relative'
+                  }}
+                >
+                  {/* Select Checkbox & Name */}
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Checkbox
+                        size="small"
+                        checked={selectedIds.includes(worker.id)}
+                        onChange={() => handleToggleOne(worker.id)}
+                        sx={{ p: 0, '&.Mui-checked': { color: '#7b61ff' } }}
+                      />
+                      <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: cardColor }}>
+                        {worker.fullName}
+                      </Typography>
+                    </Box>
+                    
+                    {/* Actions */}
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <IconButton size="small" onClick={() => openEditDrawer(worker)} sx={{ p: 0.5, color: '#6b7280', '&:hover': { color: '#10b981' } }}>
+                        <EditIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => triggerDelete(worker.id)} sx={{ p: 0.5, color: '#6b7280', '&:hover': { color: '#ef4444' } }}>
+                        <DeleteIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+
+                  {/* Grid details */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, fontSize: '0.82rem' }}>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Паспорт</Typography>
+                      <Typography sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{worker.passport || '—'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Телефон</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{worker.phone || '—'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Должность</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{worker.position || '—'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Бригада</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{groupName}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Специализация</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{specName}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Дней Патента</Typography>
+                      <Typography sx={{ fontWeight: 700, color: worker.remainingPatentDays !== null && worker.remainingPatentDays <= 10 ? '#ef4444' : 'inherit' }}>
+                        {worker.remainingPatentDays !== null ? `${worker.remainingPatentDays} д.` : '—'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              );
+            })}
+          </Stack>
+        )}
+
+        {/* Simplified mobile pagination */}
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+          <Button size="small" startIcon={<KeyboardArrowLeftIcon />} disabled={page === 1} onClick={() => setPage(p => p - 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
+            Назад
+          </Button>
+          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#4b5563' }}>
+            Стр. {page} из {totalPages || 1}
+          </Typography>
+          <Button size="small" endIcon={<KeyboardArrowRightIcon />} disabled={page === totalPages} onClick={() => setPage(p => p + 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
+            Вперед
+          </Button>
+        </Box>
+      </Box>
 
       {/* ─── Add/Edit Drawer ─── */}
       <Drawer
@@ -1077,7 +1180,7 @@ export default function Students() {
               <BadgeIcon sx={{ fontSize: 15 }} /> Shaxsiy ma'lumotlar
             </Typography>
             <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #e5e7eb', borderRadius: '12px', bgcolor: '#fff' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <Box sx={{ gridColumn: '1 / -1' }}>
                   <Field label="Ad Soyad / Ф.И.О." required>
                     <TextField fullWidth size="small" placeholder="Иванов Иван Иванович"
@@ -1126,7 +1229,7 @@ export default function Students() {
               <WorkIcon sx={{ fontSize: 15 }} /> Ish ma'lumotlari
             </Typography>
             <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #e5e7eb', borderRadius: '12px', bgcolor: '#fff' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <Field label="Görev Adı / Должность">
                   <TextField fullWidth size="small" placeholder="Сварщик"
                     value={form.position} onChange={e => setForm({ ...form, position: e.target.value })}
@@ -1177,7 +1280,7 @@ export default function Students() {
               <AssignmentIndIcon sx={{ fontSize: 15 }} /> Patent & Huquqiy ma'lumotlar
             </Typography>
             <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #e5e7eb', borderRadius: '12px', bgcolor: '#fff' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <Field label="Патент №">
                   <TextField fullWidth size="small" placeholder="PAT-123456"
                     value={form.patentNo} onChange={e => setForm({ ...form, patentNo: e.target.value })}
@@ -1208,7 +1311,7 @@ export default function Students() {
               <PeopleAltIcon sx={{ fontSize: 15 }} /> Qo'shimcha ma'lumotlar
             </Typography>
             <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #e5e7eb', borderRadius: '12px', bgcolor: '#fff' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                 <Box sx={{ gridColumn: '1 / -1' }}>
                   <Field label="Camp VE Oturum yeri / Адрес лагеря">
                     <TextField fullWidth size="small" placeholder="г. Москва, ул. Строителей 1"

@@ -129,7 +129,7 @@ export default function Sidebar({ openSettings, setOpenSettings, isSidebarCollap
 
         <Box
           sx={{
-            width: { xs: 260, md: collapsed ? 80 : 260 },
+            width: { xs: 280, md: collapsed ? 80 : 260 },
             flexShrink: 0,
             height: '100%',
             backgroundColor: '#ffffff',
@@ -215,7 +215,14 @@ export default function Sidebar({ openSettings, setOpenSettings, isSidebarCollap
 
           {/* Subscription Box */}
           {!collapsed && role !== 'TEACHER' && role !== 'STUDENT' && (
-            <Box sx={{ p: 2, mb: 2, mx: 1.5, backgroundColor: '#f9fafb', borderRadius: '16px', border: '1px solid #f3f4f6' }}>
+            <Box sx={{
+              p: { xs: 1.5, md: 2 },
+              mb: { xs: 1, md: 2 },
+              mx: { xs: 1, md: 1.5 },
+              backgroundColor: '#f9fafb',
+              borderRadius: '16px',
+              border: '1px solid #f3f4f6'
+            }}>
               <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
                 <Box sx={{ width: 36, height: 36, backgroundColor: '#fff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
                   <Box component="img" src="/subscription-icon.png" sx={{ width: 24 }} onError={(e) => { e.target.src = 'https://cdn-icons-png.flaticon.com/512/5661/5661380.png'; }} />

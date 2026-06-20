@@ -1,4 +1,5 @@
-import { Box, InputBase, IconButton, Avatar, Typography, Select, MenuItem, Badge, Button } from '@mui/material';
+import { useState } from 'react';
+import { Box, InputBase, IconButton, Avatar, Typography, Select, MenuItem, Badge, Button, Menu, Divider, Switch } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -16,6 +17,8 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const tokenVal = localStorage.getItem('token');
   let role = '';
@@ -40,6 +43,14 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
     } else {
       setIsSidebarCollapsed(!isSidebarCollapsed);
     }
+  };
+
+  const handleAvatarClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleAvatarClose = () => {
+    setAnchorEl(null);
   };
 
   const isStudent = role === 'STUDENT' || /^\/student(\/|$)/.test(location.pathname);
@@ -114,137 +125,220 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
   return (
     <Box
       sx={{
-        height: { xs: 64, sm: 90 },
+        height: { xs: 'auto', md: 90 },
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: { xs: '0 12px', sm: '0 25px' },
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: { xs: '12px', sm: '20px 25px' },
         position: 'relative',
         zIndex: 1000,
         backgroundColor: 'transparent',
       }}
     >
-      {/* Chap: Hamburger (mobil) + Harakatlar + Qidiruv */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-
-        {/* Hamburger tugmasi — faqat mobilda ko'rinadi */}
-        <IconButton
-          onClick={onMenuToggle}
-          sx={{
-            display: { xs: 'flex', md: 'none' },
-            backgroundColor: '#fff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '12px',
-            p: 1,
-          }}
-        >
-          <MenuIcon sx={{ fontSize: 20, color: '#4b5563' }} />
-        </IconButton>
-
-        {/* Calendar Icon — desktopda ko'rsatiladi */}
-        <IconButton sx={{
-          display: { xs: 'none', sm: 'flex' },
-          backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', p: 1.2
-        }}>
-          <CalendarTodayIcon sx={{ fontSize: 18, color: '#4b5563' }} />
-        </IconButton>
-
-        {/* Qo'shish tugmasi va Qidiruv */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Qo'shish tugmasi */}
-          {showAddButton && (
-            <Button 
-              variant="contained"
-              startIcon={<AddIcon />}
-              endIcon={<KeyboardArrowDownIcon sx={{ display: { xs: 'none', sm: 'block' } }} />}
-              sx={{ 
-                backgroundColor: '#7b61ff', 
-                color: 'white', 
-                borderRadius: '12px', 
-                textTransform: 'none',
-                fontWeight: 700,
-                padding: { xs: '6px 14px', sm: '8px 24px' },
-                fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                '&:hover': { backgroundColor: '#6a50e8' },
-                boxShadow: '0 4px 10px rgba(123, 97, 255, 0.2)'
-              }}
-            >
-              Добавить
-            </Button>
-          )}
-
-          {/* Qidiruv satri — kichik ekranlarda yashiriladi */}
-          <Box
+      {/* First Row (Main Header items) */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContext: 'space-between', justifyContent: 'space-between', width: '100%' }}>
+        {/* Left Side: Hamburger toggle (mobile) & Calendar & Actions */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Hamburger toggle — only on mobile */}
+          <IconButton
+            onClick={onMenuToggle}
             sx={{
-              display: { xs: 'none', sm: 'flex' },
-              alignItems: 'center',
-              backgroundColor: '#f9fafb',
-              borderRadius: '12px',
-              padding: '8px 16px',
-              width: { sm: '180px', md: '250px' },
+              display: { xs: 'flex', md: 'none' },
+              backgroundColor: '#fff',
               border: '1px solid #e5e7eb',
-              '&:focus-within': {
-                borderColor: '#7b61ff',
-                backgroundColor: '#fff',
-                boxShadow: '0 0 0 4px rgba(123, 97, 255, 0.1)'
-              },
-              transition: 'all 0.3s ease'
+              borderRadius: '12px',
+              p: 1,
             }}
           >
-            <SearchIcon sx={{ color: '#9ca3af', fontSize: 22, mr: 1.5 }} />
-            <InputBase
-              placeholder="Поиск..."
+            <MenuIcon sx={{ fontSize: 20, color: '#4b5563' }} />
+          </IconButton>
+
+          {/* Calendar Icon — desktop & tablet */}
+          <IconButton sx={{
+            display: { xs: 'none', md: 'flex' },
+            backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', p: 1.2
+          }}>
+            <CalendarTodayIcon sx={{ fontSize: 18, color: '#4b5563' }} />
+          </IconButton>
+
+          {/* Add Button & Desktop Search */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {showAddButton && (
+              <Button 
+                variant="contained"
+                sx={{ 
+                  backgroundColor: '#7b61ff', 
+                  color: 'white', 
+                  borderRadius: '12px', 
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  minWidth: { xs: 40, md: 140 },
+                  width: { xs: 40, md: 'auto' },
+                  height: { xs: 40, md: 'auto' },
+                  padding: { xs: 0, md: '8px 24px' },
+                  fontSize: { xs: '0.8rem', md: '0.875rem' },
+                  '&:hover': { backgroundColor: '#6a50e8' },
+                  boxShadow: '0 4px 10px rgba(123, 97, 255, 0.2)'
+                }}
+              >
+                <AddIcon sx={{ mr: { xs: 0, md: 1 } }} />
+                <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>Добавить</Box>
+                <KeyboardArrowDownIcon sx={{ ml: 0.5, display: { xs: 'none', lg: 'block' } }} />
+              </Button>
+            )}
+
+            {/* Search Input — desktop & tablet */}
+            <Box
               sx={{
-                flex: 1,
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                '& input::placeholder': { color: '#9ca3af', opacity: 1 }
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                backgroundColor: '#f9fafb',
+                borderRadius: '12px',
+                padding: '8px 16px',
+                width: { sm: '180px', md: '250px' },
+                border: '1px solid #e5e7eb',
+                '&:focus-within': {
+                  borderColor: '#7b61ff',
+                  backgroundColor: '#fff',
+                  boxShadow: '0 0 0 4px rgba(123, 97, 255, 0.1)'
+                },
+                transition: 'all 0.3s ease'
               }}
-            />
+            >
+              <SearchIcon sx={{ color: '#9ca3af', fontSize: 22, mr: 1.5 }} />
+              <InputBase
+                placeholder="Поиск..."
+                sx={{
+                  flex: 1,
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  '& input::placeholder': { color: '#9ca3af', opacity: 1 }
+                }}
+              />
+            </Box>
           </Box>
+        </Box>
+
+        {/* Right Side: Language select, Notification, Dark mode, Avatar */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
+          {/* Language Selector — desktop only */}
+          <Select
+            value="ru"
+            size="small"
+            IconComponent={KeyboardArrowDownIcon}
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              boxShadow: 'none',
+              '.MuiOutlinedInput-notchedOutline': { border: 0 },
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              '&:hover': { backgroundColor: '#f3f4f6' }
+            }}
+          >
+            <MenuItem value="uz">O'zbekcha</MenuItem>
+            <MenuItem value="ru">Русский</MenuItem>
+          </Select>
+
+          {/* Notifications */}
+          <IconButton sx={{ border: '1px solid #e5e7eb', borderRadius: '10px' }}>
+            <NotificationsNoneIcon sx={{ color: '#4b5563', fontSize: 20 }} />
+          </IconButton>
+
+          {/* Dark Mode — desktop only */}
+          <IconButton sx={{
+            display: { xs: 'none', md: 'flex' },
+            backgroundColor: '#1e293b', color: 'white', borderRadius: '10px',
+            '&:hover': { backgroundColor: '#0f172a' }
+          }}>
+            <DarkModeIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+
+          {/* Avatar Menu Trigger */}
+          <Avatar
+            onClick={handleAvatarClick}
+            sx={{ 
+              width: { xs: 36, md: 40 }, 
+              height: { xs: 36, md: 40 }, 
+              ml: 0.5, 
+              bgcolor: '#fca5a5',
+              cursor: 'pointer',
+              '&:hover': { opacity: 0.9 }
+            }} 
+            src="/avatar.jpg"
+          >
+            A
+          </Avatar>
+
+          {/* Dropdown Menu for Avatar */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleAvatarClose}
+            PaperProps={{
+              sx: {
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                minWidth: 180,
+                mt: 1
+              }
+            }}
+          >
+            {/* Mobile Only: Dark Mode & Language Options */}
+            <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+              <MenuItem sx={{ py: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600 }}>Темная тема</Typography>
+                  <Switch size="small" />
+                </Box>
+              </MenuItem>
+              <Divider sx={{ my: 0.5 }} />
+              <MenuItem sx={{ fontSize: '0.9rem', fontWeight: 600, py: 1 }}>
+                Язык: Русский
+              </MenuItem>
+              <MenuItem sx={{ fontSize: '0.9rem', fontWeight: 600, py: 1 }}>
+                Язык: O'zbekcha
+              </MenuItem>
+              <Divider sx={{ my: 0.5 }} />
+            </Box>
+            
+            <MenuItem onClick={() => { handleAvatarClose(); handleLogout(); }} sx={{ color: '#ef4444', fontSize: '0.9rem', fontWeight: 700, py: 1 }}>
+              <LogoutIcon sx={{ fontSize: 18, mr: 1.5 }} />
+              Выйти
+            </MenuItem>
+          </Menu>
         </Box>
       </Box>
 
-      {/* O'ng: Til, Bildirishnoma, Dark mode, Avatar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 2 } }}>
-        {/* Til tanlash — faqat sm+ da ko'rsatiladi */}
-        <Select
-          value="ru"
-          size="small"
-          IconComponent={KeyboardArrowDownIcon}
+      {/* Second Row: Mobile Search (only on mobile) */}
+      <Box
+        sx={{
+          display: { xs: 'flex', md: 'none' },
+          alignItems: 'center',
+          backgroundColor: '#fff',
+          borderRadius: '12px',
+          padding: '8px 16px',
+          width: '100%',
+          mt: 1.5,
+          border: '1px solid #e5e7eb',
+          '&:focus-within': {
+            borderColor: '#7b61ff',
+            boxShadow: '0 0 0 4px rgba(123, 97, 255, 0.1)'
+          },
+          transition: 'all 0.3s ease'
+        }}
+      >
+        <SearchIcon sx={{ color: '#9ca3af', fontSize: 22, mr: 1.5 }} />
+        <InputBase
+          placeholder="Поиск..."
+          fullWidth
           sx={{
-            display: { xs: 'none', sm: 'flex' },
-            boxShadow: 'none',
-            '.MuiOutlinedInput-notchedOutline': { border: 0 },
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
+            fontSize: '0.95rem',
             fontWeight: 500,
-            '&:hover': { backgroundColor: '#f3f4f6' }
+            '& input::placeholder': { color: '#9ca3af', opacity: 1 }
           }}
-        >
-          <MenuItem value="uz">O'zbekcha</MenuItem>
-          <MenuItem value="ru">Русский</MenuItem>
-        </Select>
-
-        {/* Bildirishnomalar */}
-        <IconButton sx={{ border: '1px solid #e5e7eb', borderRadius: '10px' }}>
-          <NotificationsNoneIcon sx={{ color: '#4b5563', fontSize: 20 }} />
-        </IconButton>
-
-        {/* Dark mode — faqat sm+ da */}
-        <IconButton sx={{
-          display: { xs: 'none', sm: 'flex' },
-          backgroundColor: '#1e293b', color: 'white', borderRadius: '10px',
-          '&:hover': { backgroundColor: '#0f172a' }
-        }}>
-          <DarkModeIcon sx={{ fontSize: 20 }} />
-        </IconButton>
-
-        {/* Avatar */}
-        <Avatar sx={{ width: { xs: 32, sm: 36 }, height: { xs: 32, sm: 36 }, ml: 0.5, bgcolor: '#fca5a5' }} src="/avatar.jpg">
-          A
-        </Avatar>
+        />
       </Box>
     </Box>
   );

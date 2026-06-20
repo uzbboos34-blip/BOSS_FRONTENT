@@ -291,7 +291,7 @@ export default function Login() {
       {/* ========== Left Side - Illustration / Brand Info ========== */}
       <Box
         sx={{
-          flex: '0 0 50%',
+          flex: { xs: 'none', lg: '0 0 50%' },
           backgroundColor: '#090d16',
           backgroundImage: `
             radial-gradient(circle at center, rgba(37, 99, 235, 0.15) 0%, rgba(9, 13, 22, 0) 70%),
@@ -299,7 +299,7 @@ export default function Login() {
             linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px)
           `,
           backgroundSize: '100% 100%, 45px 45px, 45px 45px',
-          display: { xs: 'none', md: 'flex' },
+          display: { xs: 'none', lg: 'flex' },
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
@@ -438,7 +438,7 @@ export default function Login() {
       {/* ========== Right Side - Login Form ========== */}
       <Box
         sx={{
-          flex: { xs: '1 1 100%', md: '0 0 50%' },
+          flex: { xs: '1 1 100%', lg: '0 0 50%' },
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -454,12 +454,12 @@ export default function Login() {
             maxWidth: 380,
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-start',
+            alignItems: { xs: 'center', lg: 'flex-start' },
             animation: `${slideUp} 0.8s ease-out forwards`
           }}
         >
           {/* Brand Logo & Name */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 5, justifyContent: { xs: 'center', lg: 'flex-start' }, width: '100%' }}>
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 10 }}>
               <polygon points="16,3 28,10 28,22 16,29 4,22 4,10" stroke="#0f172a" strokeWidth="2.5" strokeLinejoin="round"/>
               <polygon points="16,9 23,13 23,19 16,23 9,19 9,13" fill="#3b82f6" stroke="#3b82f6" strokeWidth="1.5" strokeLinejoin="round" />
@@ -483,7 +483,9 @@ export default function Login() {
               color: '#0f172a',
               mb: 1,
               letterSpacing: '-0.8px',
-              fontSize: '1.85rem'
+              fontSize: '1.85rem',
+              textAlign: { xs: 'center', lg: 'left' },
+              width: '100%'
             }}
           >
             Добро пожаловать
@@ -495,7 +497,9 @@ export default function Login() {
               color: '#94a3b8',
               mb: 4,
               fontSize: '0.88rem',
-              fontWeight: 500
+              fontWeight: 500,
+              textAlign: { xs: 'center', lg: 'left' },
+              width: '100%'
             }}
           >
             Войдите в свой аккаунт
@@ -623,7 +627,8 @@ export default function Login() {
               disableElevation
               disabled={loading}
               sx={{
-                py: 1.5,
+                height: '48px',
+                py: 0,
                 backgroundColor: '#ffffff',
                 color: '#171717',
                 borderRadius: '12px',

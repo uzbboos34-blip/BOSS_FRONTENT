@@ -249,7 +249,7 @@ export default function Groups() {
         </Box>
 
         {/* Workers Table */}
-        <Paper elevation={0} sx={{ border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
           <TableContainer sx={{ overflowX: 'auto' }}>
             <Table size="small" sx={{ minWidth: 2500 }}>
               <TableHead sx={{ backgroundColor: '#f9fafb' }}>
@@ -328,6 +328,46 @@ export default function Groups() {
             </Table>
           </TableContainer>
         </Paper>
+
+        {/* Workers Mobile Card View */}
+        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+          {workersLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={28} sx={{ color: '#7b61ff' }} />
+            </Box>
+          ) : filteredWorkers.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: '16px', color: '#9ca3af' }}>
+              {workersSearch ? 'Qidiruv bo\'yicha natija topilmadi' : 'Bu brigadada ishchilar yo\'q'}
+            </Paper>
+          ) : (
+            <Stack spacing={1.5}>
+              {filteredWorkers.map(w => (
+                <Paper
+                  key={w.id}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 800, fontSize: '0.92rem', color: '#111827', mb: 1 }}>{w.fullName}</Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, fontSize: '0.8rem' }}>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 600 }}>Паспорт</Typography>
+                      <Typography sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{w.passport || '—'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 600 }}>Должность</Typography>
+                      <Typography sx={{ fontWeight: 600 }}>{w.position || '—'}</Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+        </Box>
       </Box>
     );
   }
@@ -406,7 +446,7 @@ export default function Groups() {
       </Box>
 
       {/* ─── Table ─── */}
-      <Paper elevation={0} sx={{ border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
+      <Paper elevation={0} sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
         <TableContainer>
           <Table>
             <TableHead sx={{ backgroundColor: '#f9fafb' }}>
@@ -488,14 +528,16 @@ export default function Groups() {
                       <Typography sx={{ fontSize: '0.8rem', color: '#6b7280' }}>{fmtDate(group.createdAt)}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Stack direction="row" spacing={0.5}>
-                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); triggerDelete(group.id); }} sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
-                          <DeleteIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEditDrawer(group); }} sx={{ color: '#9ca3af', '&:hover': { color: '#10b981' } }}>
-                          <EditIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Stack>
+                      <Box onClick={(e) => e.stopPropagation()} sx={{ display: 'flex' }}>
+                        <Stack direction="row" spacing={0.5}>
+                          <IconButton size="small" onClick={(e) => { e.stopPropagation(); triggerDelete(group.id); }} sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                          <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEditDrawer(group); }} sx={{ color: '#9ca3af', '&:hover': { color: '#10b981' } }}>
+                            <EditIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Stack>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );
@@ -518,9 +560,10 @@ export default function Groups() {
                   </Typography>
                 );
               }
+              const isSelected = p === page;
               return (
                 <Button key={p} size="small" onClick={() => setPage(p)}
-                  sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: page === p ? 700 : 400, backgroundColor: page === p ? '#7b61ff' : 'transparent', color: page === p ? '#fff' : '#4b5563', '&:hover': { backgroundColor: page === p ? '#6a50e8' : '#f3f4f6' } }}
+                  sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: isSelected ? 700 : 400, backgroundColor: isSelected ? '#7b61ff' : 'transparent', color: isSelected ? '#fff' : '#4b5563', '&:hover': { backgroundColor: isSelected ? '#6a50e8' : '#f3f4f6' } }}
                 >{p}</Button>
               );
             })}
@@ -530,6 +573,120 @@ export default function Groups() {
           </Button>
         </Box>
       </Paper>
+
+      {/* ─── Main Mobile Card View ─── */}
+      <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
+        {paginated.length === 0 ? (
+          <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: '16px', color: '#9ca3af' }}>
+            Данные не найдены
+          </Paper>
+        ) : (
+          <Stack spacing={2}>
+            {paginated.map((group) => {
+              const color = getGroupColor(group.name);
+              const workerCount = group.workers?.length ?? group._count?.workers ?? 0;
+              return (
+                <Paper
+                  key={group.id}
+                  elevation={0}
+                  onClick={() => openGroupDetail(group)}
+                  sx={{
+                    p: 2.5,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '16px',
+                    backgroundColor: '#ffffff',
+                    cursor: 'pointer',
+                    '&:hover': { backgroundColor: '#f9fafb' }
+                  }}
+                >
+                  {/* Header: Avatar, Name and actions */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Box sx={{
+                        width: 36, height: 36, borderRadius: '10px',
+                        backgroundColor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: `1.5px solid ${color}30`
+                      }}>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color }}>
+                          {getInitials(group.name)}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111827' }}>
+                        {group.name}
+                      </Typography>
+                    </Box>
+
+                    {/* Actions */}
+                    <Box sx={{ display: 'flex', gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEditDrawer(group); }} sx={{ p: 0.5, color: '#9ca3af', '&:hover': { color: '#10b981' } }}>
+                        <EditIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                      <IconButton size="small" onClick={(e) => { e.stopPropagation(); triggerDelete(group.id); }} sx={{ p: 0.5, color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
+                        <DeleteIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+
+                  {/* Details */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, fontSize: '0.82rem' }}>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Рабочих</Typography>
+                      <Chip
+                        label={`${workerCount} чел.`}
+                        size="small"
+                        sx={{ fontSize: '0.68rem', fontWeight: 700, height: 20, backgroundColor: '#f0eeff', color: '#7b61ff', border: '1px solid #e0d9ff', mt: 0.5 }}
+                      />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Статус</Typography>
+                      <Chip
+                        label={workerCount > 0 ? 'Активна' : 'Пустая'}
+                        size="small"
+                        sx={{
+                          fontSize: '0.68rem', height: 20, fontWeight: 600,
+                          backgroundColor: workerCount > 0 ? '#ecfdf5' : '#f9fafb',
+                          color: workerCount > 0 ? '#10b981' : '#9ca3af',
+                          border: `1px solid ${workerCount > 0 ? '#a7f3d0' : '#e5e7eb'}`, mt: 0.5
+                        }}
+                      />
+                    </Box>
+                    <Box sx={{ gridColumn: '1 / -1' }}>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600, mb: 0.5 }}>Специализации</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {group.specializations && group.specializations.length > 0 ? (
+                          group.specializations.slice(0, 3).map(sp => (
+                            <Chip key={sp.id} label={sp.name} size="small"
+                              sx={{ fontSize: '0.65rem', height: 18, fontWeight: 600, backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }} />
+                          ))
+                        ) : (
+                          <Typography sx={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</Typography>
+                        )}
+                        {group.specializations?.length > 3 && (
+                          <Chip label={`+${group.specializations.length - 3}`} size="small"
+                            sx={{ fontSize: '0.65rem', height: 18, fontWeight: 600, backgroundColor: '#f3f4f6', color: '#6b7280' }} />
+                        )}
+                      </Box>
+                    </Box>
+                  </Box>
+                </Paper>
+              );
+            })}
+          </Stack>
+        )}
+
+        {/* Simplified mobile pagination */}
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+          <Button size="small" startIcon={<KeyboardArrowLeftIcon />} disabled={page === 1} onClick={() => setPage(p => p - 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
+            Назад
+          </Button>
+          <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#4b5563' }}>
+            Стр. {page} из {totalPages || 1}
+          </Typography>
+          <Button size="small" endIcon={<KeyboardArrowRightIcon />} disabled={page === totalPages} onClick={() => setPage(p => p + 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
+            Далее
+          </Button>
+        </Box>
+      </Box>
 
       {/* ─── Create/Edit Drawer ─── */}
       <Drawer

@@ -710,14 +710,14 @@ export default function Attendance() {
           <Box>
             {/* Log Header & Filters */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#111827' }}>Журнал посещаемости</Typography>
                   <IconButton size="small" onClick={getLogs} disabled={loadingLogs}>
                     <RefreshIcon sx={{ fontSize: 18, color: '#6b7280' }} />
                   </IconButton>
                 </Box>
-                <Stack direction="row" spacing={1}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                   <Button
                     variant="contained"
                     component="label"
@@ -826,7 +826,8 @@ export default function Attendance() {
             </Box>
 
             {/* Logs Table */}
-            <TableContainer sx={{ border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
+            {/* Logs Table */}
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
               <Table size="small">
                 <TableHead sx={{ backgroundColor: '#f9fafb' }}>
                   <TableRow>
@@ -875,6 +876,78 @@ export default function Attendance() {
               </Table>
             </TableContainer>
 
+            {/* Mobile Logs Card View */}
+            <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+              {loadingLogs ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, color: '#9ca3af' }}>Загрузка логов посещаемости...</Box>
+              ) : paginatedLogs.length === 0 ? (
+                <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: '16px', color: '#9ca3af', backgroundColor: '#f9fafb' }}>
+                  Записи не найдены
+                </Paper>
+              ) : (
+                <Stack spacing={2}>
+                  {paginatedLogs.map((log) => (
+                    <Paper
+                      key={log.id}
+                      elevation={0}
+                      sx={{
+                        p: 2.5,
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '16px',
+                        backgroundColor: '#ffffff',
+                        position: 'relative'
+                      }}
+                    >
+                      {/* Header: Name and Edit/Delete actions */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111827' }}>
+                          {log.worker?.fullName || '—'}
+                        </Typography>
+                        <Stack direction="row" spacing={0.5}>
+                          <IconButton size="small" onClick={() => handleOpenEdit(log)} sx={{ color: '#9ca3af', '&:hover': { color: '#7b61ff' } }}>
+                            <EditIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => handleOpenDelete(log)} sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Stack>
+                      </Box>
+
+                      {/* Details Grid */}
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, fontSize: '0.82rem' }}>
+                        <Box>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Паспорт</Typography>
+                          <Typography sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{log.worker?.passport || '—'}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Статус</Typography>
+                          <Box sx={{ mt: 0.5 }}>{getStatusChip(log.status)}</Box>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Дата</Typography>
+                          <Typography sx={{ fontWeight: 600 }}>{formatDate(log.date)}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Смена</Typography>
+                          <Typography sx={{ fontWeight: 600 }}>{getSessionLabel(log.session)}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Кто отметил</Typography>
+                          <Typography sx={{ fontWeight: 600, color: '#64748b' }}>
+                            {log.supervisor?.fullName || log.createdBy || 'Система'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ gridColumn: '1 / -1' }}>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Примечание</Typography>
+                          <Typography sx={{ fontWeight: 500, color: '#475569', mt: 0.5 }}>{log.note || '—'}</Typography>
+                        </Box>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+
             {/* Log Pagination */}
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb', mt: 2 }}>
               <Button size="small" startIcon={<KeyboardArrowLeftIcon />} disabled={logPage === 1} onClick={() => setLogPage(p => p - 1)} sx={{ textTransform: 'none', color: '#4b5563' }}>
@@ -889,9 +962,10 @@ export default function Attendance() {
                       </Typography>
                     );
                   }
+                  const isSelected = p === logPage;
                   return (
                     <Button key={p} size="small" onClick={() => setLogPage(p)}
-                      sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: logPage === p ? 700 : 400, backgroundColor: logPage === p ? '#7b61ff' : 'transparent', color: logPage === p ? '#fff' : '#4b5563', '&:hover': { backgroundColor: logPage === p ? '#6a50e8' : '#f3f4f6' } }}
+                      sx={{ minWidth: 32, height: 32, borderRadius: '8px', fontWeight: isSelected ? 700 : 400, backgroundColor: isSelected ? '#7b61ff' : 'transparent', color: isSelected ? '#fff' : '#4b5563', '&:hover': { backgroundColor: isSelected ? '#6a50e8' : '#f3f4f6' } }}
                     >{p}</Button>
                   );
                 })}
@@ -906,27 +980,29 @@ export default function Attendance() {
         {/* ─── Sub-Tab 1: Supervisor Assignments ─── */}
         {subTab === 1 && (
           <Box>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Stack direction="row" spacing={2} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', md: 'center' }, gap: 2, mb: 3 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ width: { xs: '100%', md: 'auto' } }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' }}>
                   Супервайзер:
                 </Typography>
-                <FormControl size="small" sx={{ minWidth: 220 }}>
-                  <Select
-                    value={selectedSupId}
-                    onChange={(e) => setSelectedSupId(e.target.value)}
-                    sx={{ borderRadius: '10px' }}
-                  >
-                    {supervisors.length === 0 ? (
-                      <MenuItem value=""><em>Нет супервайзеров</em></MenuItem>
-                    ) : supervisors.map(sup => (
-                      <MenuItem key={sup.id} value={sup.id}>{sup.fullName}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <IconButton size="small" onClick={() => getAssignedWorkers(selectedSupId)} disabled={loadingAssigned || !selectedSupId}>
-                  <RefreshIcon sx={{ fontSize: 18, color: '#6b7280' }} />
-                </IconButton>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%' }}>
+                  <FormControl size="small" sx={{ flexGrow: 1, minWidth: { xs: 0, sm: 220 } }}>
+                    <Select
+                      value={selectedSupId}
+                      onChange={(e) => setSelectedSupId(e.target.value)}
+                      sx={{ borderRadius: '10px' }}
+                    >
+                      {supervisors.length === 0 ? (
+                        <MenuItem value=""><em>Нет супервайзеров</em></MenuItem>
+                      ) : supervisors.map(sup => (
+                        <MenuItem key={sup.id} value={sup.id}>{sup.fullName}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <IconButton size="small" onClick={() => getAssignedWorkers(selectedSupId)} disabled={loadingAssigned || !selectedSupId}>
+                    <RefreshIcon sx={{ fontSize: 18, color: '#6b7280' }} />
+                  </IconButton>
+                </Stack>
               </Stack>
 
               <Button
@@ -941,6 +1017,7 @@ export default function Attendance() {
                   fontWeight: 700,
                   px: 3,
                   py: 1,
+                  width: { xs: '100%', md: 'auto' },
                   '&:hover': { backgroundColor: '#6a50e8' }
                 }}
               >
@@ -949,7 +1026,7 @@ export default function Attendance() {
             </Box>
 
             {/* Assigned Workers Table */}
-            <TableContainer sx={{ border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
               <Table size="small">
                 <TableHead sx={{ backgroundColor: '#f9fafb' }}>
                   <TableRow>
@@ -993,6 +1070,61 @@ export default function Attendance() {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {/* Mobile Assigned Workers Card View */}
+            <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 2 }}>
+              {loadingAssigned ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, color: '#9ca3af' }}>Загрузка закрепленных рабочих...</Box>
+              ) : assignedWorkers.length === 0 ? (
+                <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: '16px', color: '#9ca3af', backgroundColor: '#f9fafb' }}>
+                  За супервайзером еще не закреплены рабочие
+                </Paper>
+              ) : (
+                <Stack spacing={2}>
+                  {assignedWorkers.map((worker) => (
+                    <Paper
+                      key={worker.id}
+                      elevation={0}
+                      sx={{
+                        p: 2.5,
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '16px',
+                        backgroundColor: '#ffffff'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                        <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111827' }}>
+                          {worker.fullName}
+                        </Typography>
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="outlined"
+                          onClick={() => handleUnassign(worker)}
+                          sx={{ textTransform: 'none', borderRadius: '6px', fontSize: '0.72rem', py: 0.2, px: 1, minWidth: 'auto' }}
+                        >
+                          Открепить
+                        </Button>
+                      </Box>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, fontSize: '0.82rem' }}>
+                        <Box>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Паспорт</Typography>
+                          <Typography sx={{ fontWeight: 600, fontFamily: 'monospace' }}>{worker.passport || '—'}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Должность</Typography>
+                          <Typography sx={{ fontWeight: 600 }}>{worker.position || '—'}</Typography>
+                        </Box>
+                        <Box sx={{ gridColumn: '1 / -1' }}>
+                          <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Бригада / Группа</Typography>
+                          <Typography sx={{ fontWeight: 600 }}>{worker.group?.name || worker.group?.title || '—'}</Typography>
+                        </Box>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Box>
           </Box>
         )}
       </Paper>
