@@ -4,7 +4,8 @@ import {
   Box, Typography, Button, IconButton, Paper, Drawer,
   TextField, Stack, Tooltip, Dialog, DialogContent, MenuItem, Select, FormControl,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Divider, Tabs, Tab,
-  Checkbox, InputLabel, Chip, Autocomplete, DialogTitle, DialogActions, FormControlLabel
+  Checkbox, InputLabel, Chip, Autocomplete, DialogTitle, DialogActions, FormControlLabel,
+  CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -66,7 +67,10 @@ export default function Attendance() {
   const [logs, setLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logPage, setLogPage] = useState(1);
-  const [filterDate, setFilterDate] = useState('');
+  const [totalLogPages, setTotalLogPages] = useState(1);
+  const [totalLogCount, setTotalLogCount] = useState(0);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [filterDate, setFilterDate] = useState(todayStr);
   const [filterSession, setFilterSession] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSupervisorId, setFilterSupervisorId] = useState('');
@@ -74,6 +78,9 @@ export default function Attendance() {
   // Register manual attendance states
   const [registerOpen, setRegisterOpen] = useState(false);
   const [allWorkers, setAllWorkers] = useState([]);
+  const [searchedWorkers, setSearchedWorkers] = useState([]);
+  const [workerSearchQuery, setWorkerSearchQuery] = useState('');
+  const [searchingWorkers, setSearchingWorkers] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [regDate, setRegDate] = useState(new Date().toISOString().split('T')[0]);
   const [regSession, setRegSession] = useState(1);
@@ -153,14 +160,25 @@ export default function Attendance() {
   async function getLogs() {
     setLoadingLogs(true);
     try {
-      const params = {};
+      const params = {
+        page: logPage,
+        limit: ITEMS_PER_PAGE
+      };
       if (filterDate) params.date = filterDate;
       if (filterSession) params.session = filterSession;
       if (filterStatus) params.status = filterStatus;
       if (filterSupervisorId) params.supervisorId = filterSupervisorId;
 
       const res = await api.get('/api/v1/attendance', { params });
-      setLogs(res.data || []);
+      if (res.data && res.data.data !== undefined) {
+        setLogs(res.data.data);
+        setTotalLogPages(res.data.totalPages || 1);
+        setTotalLogCount(res.data.totalCount || 0);
+      } else {
+        setLogs(Array.isArray(res.data) ? res.data : []);
+        setTotalLogPages(1);
+        setTotalLogCount(Array.isArray(res.data) ? res.data.length : 0);
+      }
     } catch (e) {
       console.error('Failed to fetch attendance logs:', e);
     } finally {
@@ -192,23 +210,53 @@ export default function Attendance() {
 
   useEffect(() => {
     fetchSupervisors();
-    fetchAllWorkers();
   }, []);
 
   useEffect(() => {
     if (subTab === 0) {
       getLogs();
     }
-  }, [subTab, filterDate, filterSession, filterStatus, filterSupervisorId]);
+  }, [subTab, logPage, filterDate, filterSession, filterStatus, filterSupervisorId]);
 
   useEffect(() => {
     if (subTab === 1) {
       fetchAllAssignments();
+      fetchAllWorkers();
       if (selectedSupId) {
         getAssignedWorkers(selectedSupId);
       }
     }
   }, [subTab, selectedSupId]);
+
+  useEffect(() => {
+    if (workerSearchQuery.trim().length < 2) {
+      setSearchedWorkers([]);
+      return;
+    }
+
+    let active = true;
+    setSearchingWorkers(true);
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const params = { search: workerSearchQuery.trim(), page: 1, limit: 15, isActive: 'true' };
+        const res = await api.get('/api/v1/worker', { params });
+        if (active) {
+          const list = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+          setSearchedWorkers(list);
+        }
+      } catch (err) {
+        console.error('Error searching workers:', err);
+      } finally {
+        if (active) setSearchingWorkers(false);
+      }
+    }, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(delayDebounce);
+    };
+  }, [workerSearchQuery]);
 
   // Operations
   const handleExportCSV = () => {
@@ -619,8 +667,7 @@ export default function Attendance() {
   };
 
   // Pagination for logs
-  const totalLogPages = Math.max(1, Math.ceil(logs.length / ITEMS_PER_PAGE));
-  const paginatedLogs = logs.slice((logPage - 1) * ITEMS_PER_PAGE, logPage * ITEMS_PER_PAGE);
+  const paginatedLogs = logs;
 
   // Filter out workers that are already assigned to ANY supervisor
   const unassignedWorkers = allWorkers.filter(w => {
@@ -981,11 +1028,31 @@ export default function Attendance() {
             </Typography>
             <Autocomplete
               size="small"
-              options={allWorkers}
+              options={searchedWorkers}
               getOptionLabel={(w) => `${w.fullName} (${w.passport || 'Без паспорта'})`}
               value={selectedWorker}
               onChange={(e, v) => setSelectedWorker(v)}
-              renderInput={(params) => <TextField {...params} placeholder="Поиск по имени или паспорту..." sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }} />}
+              inputValue={workerSearchQuery}
+              onInputChange={(e, v) => setWorkerSearchQuery(v)}
+              loading={searchingWorkers}
+              noOptionsText="Введите минимум 2 символа..."
+              loadingText="Поиск..."
+              renderInput={(params) => (
+                <TextField 
+                  {...params} 
+                  placeholder="Поиск по имени, паспорту..." 
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {searchingWorkers ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    )
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }} 
+                />
+              )}
             />
           </Box>
 

@@ -5,7 +5,8 @@ import {
   Box, Typography, Button, Paper, TextField, MenuItem, Select, FormControl,
   BottomNavigation, BottomNavigationAction, Chip, Stack, List, ListItem,
   ListItemText, Divider, LinearProgress, Alert, IconButton, Drawer, Dialog,
-  DialogTitle, DialogContent, DialogActions, Radio, RadioGroup, FormControlLabel
+  DialogTitle, DialogContent, DialogActions, Radio, RadioGroup, FormControlLabel,
+  CircularProgress
 } from '@mui/material';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import ListAltIcon from '@mui/icons-material/ListAlt';
@@ -57,6 +58,102 @@ export default function SupervisorDashboard() {
   const [selectedReason, setSelectedReason] = useState('ABSENT');
   const [customReason, setCustomReason] = useState('');
   const [savingReason, setSavingReason] = useState(false);
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [pendingScans, setPendingScans] = useState([]);
+  const [syncingOffline, setSyncingOffline] = useState(false);
+
+  // Load pending scans from local storage
+  const loadPendingScans = () => {
+    try {
+      const saved = localStorage.getItem('pending_scans');
+      setPendingScans(saved ? JSON.parse(saved) : []);
+    } catch (e) {
+      console.error('Failed to load pending scans:', e);
+    }
+  };
+
+  const syncPendingScans = async () => {
+    if (syncingOffline) return;
+    setSyncingOffline(true);
+    try {
+      const saved = localStorage.getItem('pending_scans');
+      const queue = saved ? JSON.parse(saved) : [];
+      if (queue.length === 0) return;
+
+      const remainingQueue = [];
+      let hasError = false;
+
+      for (const scan of queue) {
+        if (hasError) {
+          remainingQueue.push(scan);
+          continue;
+        }
+
+        try {
+          await api.post('/api/v1/attendance/scan', {
+            qrCode: scan.qrCode,
+            status: scan.status,
+            session: Number(scan.session),
+            date: scan.date,
+            note: scan.note || undefined,
+          });
+        } catch (err) {
+          const statusVal = err.response?.status;
+          const msg = err.response?.data?.message || '';
+          
+          if (statusVal === 400 && (msg.includes('allaqachon') || msg.includes('уже') || msg.includes('найден') || msg.includes('topilmadi'))) {
+            console.warn('Skipping invalid scan during sync:', scan, msg);
+            continue;
+          } else {
+            console.error('Sync failed for scan:', scan, err);
+            remainingQueue.push(scan);
+            hasError = true;
+          }
+        }
+      }
+
+      localStorage.setItem('pending_scans', JSON.stringify(remainingQueue));
+      setPendingScans(remainingQueue);
+
+      if (!hasError) {
+        fetchJournal();
+      }
+    } catch (e) {
+      console.error('Offline sync failed:', e);
+    } finally {
+      setSyncingOffline(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPendingScans();
+  }, []);
+
+  // Monitor network status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Auto-sync when online and there are pending items
+  useEffect(() => {
+    if (isOnline && pendingScans.length > 0) {
+      syncPendingScans();
+    }
+  }, [isOnline, pendingScans.length]);
 
   const html5QrCodeRef = useRef(null);
 
@@ -116,6 +213,7 @@ export default function SupervisorDashboard() {
   }, [tab, scanMode]);
 
   // Journal states
+  const [journalDate, setJournalDate] = useState(new Date().toISOString().split('T')[0]);
   const [journalSession, setJournalSession] = useState(1);
   const [journalSubTab, setJournalSubTab] = useState(0); // 0 = Scanned, 1 = Remaining
   const [assignedWorkers, setAssignedWorkers] = useState([]);
@@ -167,15 +265,23 @@ export default function SupervisorDashboard() {
     if (!supervisorId) return;
     setLoadingJournal(true);
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
       const [workersRes, attRes] = await Promise.all([
         api.get(`/api/v1/attendance/supervisor/${supervisorId}/workers`),
-        api.get('/api/v1/attendance/my', { params: { date: todayStr } })
+        api.get('/api/v1/attendance/my', { params: { date: journalDate } })
       ]);
-      setAssignedWorkers(workersRes.data?.assignedWorkers || []);
-      setMyAttendances(attRes.data || []);
+      const workersList = workersRes.data?.assignedWorkers || [];
+      const attList = attRes.data || [];
+      setAssignedWorkers(workersList);
+      setMyAttendances(attList);
+      localStorage.setItem(`cached_workers_${supervisorId}`, JSON.stringify(workersList));
     } catch (e) {
       console.error('Failed to load journal:', e);
+      if (!navigator.onLine) {
+        const cached = localStorage.getItem(`cached_workers_${supervisorId}`);
+        if (cached) {
+          setAssignedWorkers(JSON.parse(cached));
+        }
+      }
     } finally {
       setLoadingJournal(false);
     }
@@ -185,8 +291,7 @@ export default function SupervisorDashboard() {
   const fetchStats = async () => {
     setLoadingStats(true);
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const res = await api.get('/api/v1/attendance/supervisor-stats', { params: { date: todayStr } });
+      const res = await api.get('/api/v1/attendance/supervisor-stats', { params: { date: journalDate } });
       setStats(res.data || []);
     } catch (e) {
       console.error('Failed to load stats:', e);
@@ -201,7 +306,7 @@ export default function SupervisorDashboard() {
     } else if (tab === 2) {
       fetchStats();
     }
-  }, [tab, supervisorId]);
+  }, [tab, supervisorId, journalDate, journalSession]);
 
   // Operations
   const autoSubmitScan = async (codeToSubmit) => {
@@ -211,11 +316,57 @@ export default function SupervisorDashboard() {
     setScanResult(null);
     setQrCode(''); // Clear the input field immediately
     
+    if (!navigator.onLine) {
+      try {
+        const cached = localStorage.getItem(`cached_workers_${supervisorId}`);
+        const cachedWorkersList = cached ? JSON.parse(cached) : [];
+        const worker = cachedWorkersList.find(w => w.qrCode === codeToSubmit || w.passport === codeToSubmit);
+        const workerName = worker ? worker.fullName : `Ishchi (${codeToSubmit})`;
+
+        const isDuplicate = pendingScans.some(
+          p => (p.qrCode === codeToSubmit || (worker && p.qrCode === worker.qrCode)) &&
+          p.date === journalDate &&
+          p.session === Number(session)
+        );
+        if (isDuplicate) {
+          throw new Error('Ishchi ushbu sessiya uchun allaqachon oflayn belgilangan');
+        }
+
+        const newScan = {
+          id: Math.random().toString(36).substring(2, 9),
+          qrCode: worker ? worker.qrCode : codeToSubmit,
+          status,
+          session: Number(session),
+          date: journalDate,
+          note: null,
+          workerName,
+          passport: worker ? worker.passport : '',
+          createdAt: new Date().toISOString()
+        };
+
+        const updatedPending = [...pendingScans, newScan];
+        localStorage.setItem('pending_scans', JSON.stringify(updatedPending));
+        setPendingScans(updatedPending);
+
+        setScanResult({
+          workerName,
+          status,
+          message: 'Сохранено локально (офлайн)'
+        });
+      } catch (err) {
+        setErrorMsg(err.message || 'Не удалось сохранить офлайн');
+      } finally {
+        setSubmittingScan(false);
+      }
+      return;
+    }
+
     try {
       const res = await api.post('/api/v1/attendance/scan', {
         qrCode: codeToSubmit,
         status,
-        session: Number(session)
+        session: Number(session),
+        date: journalDate
       });
       setScanResult(res.data?.data || { success: true, message: res.data?.message || 'Успешно!' });
     } catch (err) {
@@ -249,11 +400,53 @@ export default function SupervisorDashboard() {
     const finalStatus = isCustom ? 'ABSENT' : selectedReason;
     const note = isCustom ? customReason.trim() : null;
 
+    if (!navigator.onLine) {
+      try {
+        const isDuplicate = pendingScans.some(
+          p => p.qrCode === selectedWorker.qrCode &&
+          p.date === journalDate &&
+          p.session === Number(journalSession)
+        );
+        if (isDuplicate) {
+          throw new Error('Ishchi ushbu sessiya uchun allaqachon oflayn belgilangan');
+        }
+
+        const newScan = {
+          id: Math.random().toString(36).substring(2, 9),
+          qrCode: selectedWorker.qrCode,
+          status: finalStatus,
+          session: Number(journalSession),
+          date: journalDate,
+          note,
+          workerName: selectedWorker.fullName,
+          passport: selectedWorker.passport,
+          createdAt: new Date().toISOString()
+        };
+
+        const updatedPending = [...pendingScans, newScan];
+        localStorage.setItem('pending_scans', JSON.stringify(updatedPending));
+        setPendingScans(updatedPending);
+
+        setScanResult({
+          workerName: selectedWorker.fullName,
+          status: finalStatus,
+          message: 'Сохранено локально (офлайн)'
+        });
+        setReasonDialogOpen(false);
+      } catch (err) {
+        alert(err.message || 'Не удалось сохранить офлайн');
+      } finally {
+        setSavingReason(false);
+      }
+      return;
+    }
+
     try {
       const res = await api.post('/api/v1/attendance/scan', {
         qrCode: selectedWorker.qrCode,
         status: finalStatus,
         session: Number(journalSession),
+        date: journalDate,
         note
       });
       
@@ -273,9 +466,31 @@ export default function SupervisorDashboard() {
     window.location.href = '/login';
   };
 
-  // Filter logs for today
-  const scannedToday = myAttendances.filter(a => a.session === Number(journalSession));
-  const scannedWorkerIds = new Set(scannedToday.map(a => a.workerId));
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Filter logs for selected date
+  const activePending = pendingScans.filter(
+    p => p.date === journalDate && p.session === Number(journalSession)
+  );
+
+  const scannedForDate = myAttendances.filter(a => a.session === Number(journalSession));
+
+  // Combine synced and pending offline scans to compute lists correctly
+  const scannedWorkerIds = new Set([
+    ...scannedForDate.map(a => a.workerId),
+    ...activePending.map(p => {
+      const w = assignedWorkers.find(x => x.qrCode === p.qrCode || x.passport === p.passport);
+      return w ? w.id : null;
+    }).filter(id => id !== null)
+  ]);
+
   const remainingWorkers = assignedWorkers.filter(w => !scannedWorkerIds.has(w.id));
 
   const getStatusLabel = (statusVal) => {
@@ -301,6 +516,42 @@ export default function SupervisorDashboard() {
       backgroundColor: '#f8fafc',
       fontFamily: 'Inter, system-ui, sans-serif'
     }}>
+      {/* Tarmoq holati bannerlari (Offline status banners) */}
+      {!isOnline && (
+        <Box sx={{
+          backgroundColor: '#fee2e2',
+          color: '#991b1b',
+          borderBottom: '1px solid #fca5a5',
+          px: 2,
+          py: 1,
+          textAlign: 'center',
+          fontSize: '0.78rem',
+          fontWeight: 700
+        }}>
+          Режим офлайн. Данные сохраняются локально и отправятся при подключении к сети.
+        </Box>
+      )}
+
+      {syncingOffline && (
+        <Box sx={{
+          backgroundColor: '#e0f2fe',
+          color: '#0369a1',
+          borderBottom: '1px solid #bae6fd',
+          px: 2,
+          py: 1,
+          textAlign: 'center',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <CircularProgress size={12} color="inherit" />
+          Синхронизация офлайн-данных...
+        </Box>
+      )}
+
       {/* Mobile-centric Header */}
       <Box sx={{
         position: 'sticky',
@@ -350,7 +601,7 @@ export default function SupervisorDashboard() {
             {/* Current parameters chip */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
               <Chip
-                label={`Смена: ${SESSION_OPTIONS.find(o => o.value === session)?.label} • Статус: ${STATUS_OPTIONS.find(o => o.value === status)?.label}`}
+                label={`Дата: ${formatDate(journalDate)} • Смена: ${SESSION_OPTIONS.find(o => o.value === session)?.label} • Статус: ${STATUS_OPTIONS.find(o => o.value === status)?.label}`}
                 onClick={() => setSettingsOpen(true)}
                 onDelete={() => setSettingsOpen(true)}
                 deleteIcon={<SettingsIcon sx={{ '&&': { color: '#7b61ff' } }} />}
@@ -584,15 +835,26 @@ export default function SupervisorDashboard() {
               </Alert>
             )}
 
-            {/* Shift Select & Subtabs Toggle */}
+            {/* Date, Shift Select & Subtabs Toggle */}
             <Paper elevation={0} sx={{ p: 2, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>Выбрать смену:</Typography>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', minWidth: '80px' }}>Дата:</Typography>
+                <TextField
+                  type="date"
+                  size="small"
+                  fullWidth
+                  value={journalDate}
+                  onChange={(e) => setJournalDate(e.target.value)}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', minWidth: '80px' }}>Смена:</Typography>
                 <FormControl size="small" sx={{ flexGrow: 1 }}>
                   <Select
                     value={journalSession}
                     onChange={(e) => setJournalSession(e.target.value)}
-                    sx={{ borderRadius: '8px' }}
+                    sx={{ borderRadius: '8px', bgcolor: '#fff' }}
                   >
                     {SESSION_OPTIONS.map(o => (
                       <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
@@ -608,7 +870,7 @@ export default function SupervisorDashboard() {
                   sx={{
                     textTransform: 'none',
                     borderRadius: '8px',
-                    fontSize: '0.78rem',
+                    fontSize: '0.72rem',
                     fontWeight: 700,
                     py: 0.8,
                     backgroundColor: journalSubTab === 0 ? '#fff' : 'transparent',
@@ -617,7 +879,7 @@ export default function SupervisorDashboard() {
                     '&:hover': { backgroundColor: journalSubTab === 0 ? '#fff' : 'transparent' }
                   }}
                 >
-                  Отмеченные ({scannedToday.length})
+                  Отмеченные ({scannedForDate.length})
                 </Button>
                 <Button
                   fullWidth
@@ -625,7 +887,7 @@ export default function SupervisorDashboard() {
                   sx={{
                     textTransform: 'none',
                     borderRadius: '8px',
-                    fontSize: '0.78rem',
+                    fontSize: '0.72rem',
                     fontWeight: 700,
                     py: 0.8,
                     backgroundColor: journalSubTab === 1 ? '#fff' : 'transparent',
@@ -635,6 +897,23 @@ export default function SupervisorDashboard() {
                   }}
                 >
                   Оставшиеся ({remainingWorkers.length})
+                </Button>
+                <Button
+                  fullWidth
+                  onClick={() => setJournalSubTab(2)}
+                  sx={{
+                    textTransform: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    py: 0.8,
+                    backgroundColor: journalSubTab === 2 ? '#fff' : 'transparent',
+                    color: journalSubTab === 2 ? '#7b61ff' : '#64748b',
+                    boxShadow: journalSubTab === 2 ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                    '&:hover': { backgroundColor: journalSubTab === 2 ? '#fff' : 'transparent' }
+                  }}
+                >
+                  Ожидающие ({activePending.length})
                 </Button>
               </Box>
             </Paper>
@@ -647,13 +926,13 @@ export default function SupervisorDashboard() {
                 </Box>
               ) : journalSubTab === 0 ? (
                 /* Scanned List */
-                scannedToday.length === 0 ? (
+                scannedForDate.length === 0 ? (
                   <Box sx={{ p: 4, textAlign: 'center' }}>
                     <Typography sx={{ color: '#94a3b8', fontSize: '0.85rem' }}>В этой смене пока никто не отмечен</Typography>
                   </Box>
                 ) : (
                   <List disablePadding>
-                    {scannedToday.map((item, idx) => (
+                    {scannedForDate.map((item, idx) => (
                       <Box key={item.id}>
                         {idx > 0 && <Divider />}
                         <ListItem sx={{ py: 1.5 }}>
@@ -685,7 +964,7 @@ export default function SupervisorDashboard() {
                     ))}
                   </List>
                 )
-              ) : (
+              ) : journalSubTab === 1 ? (
                 /* Remaining List */
                 remainingWorkers.length === 0 ? (
                   <Box sx={{ p: 4, textAlign: 'center', bgcolor: '#ecfdf5' }}>
@@ -735,6 +1014,61 @@ export default function SupervisorDashboard() {
                               borderRadius: '6px'
                             }}
                           />
+                        </ListItem>
+                      </Box>
+                    ))}
+                  </List>
+                )
+              ) : (
+                /* Pending (Ожидающие) List */
+                activePending.length === 0 ? (
+                  <Box sx={{ p: 4, textAlign: 'center' }}>
+                    <Typography sx={{ color: '#94a3b8', fontSize: '0.85rem' }}>Нет ожидающих отправки записей</Typography>
+                  </Box>
+                ) : (
+                  <List disablePadding>
+                    {activePending.map((item, idx) => (
+                      <Box key={item.id}>
+                        {idx > 0 && <Divider />}
+                        <ListItem sx={{ py: 1.5 }}>
+                          <ListItemText
+                            primary={
+                              <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
+                                {item.workerName}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography sx={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                Паспорт: {item.passport || '—'} | Ожидает сеть...
+                              </Typography>
+                            }
+                          />
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Chip
+                              size="small"
+                              label={getStatusLabel(item.status)}
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                backgroundColor: getStatusBg(item.status),
+                                color: getStatusColor(item.status),
+                                borderRadius: '6px',
+                                mr: 1
+                              }}
+                            />
+                            <Chip
+                              size="small"
+                              label="Ожидает"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: '0.65rem',
+                                backgroundColor: '#fffbeb',
+                                color: '#d97706',
+                                border: '1px solid #fef3c7',
+                                borderRadius: '6px'
+                              }}
+                            />
+                          </Box>
                         </ListItem>
                       </Box>
                     ))}
@@ -835,7 +1169,19 @@ export default function SupervisorDashboard() {
               </Select>
             </FormControl>
 
-            <FormControl size="small" fullWidth>
+            <FormControl size="small" fullWidth sx={{ mt: 1 }}>
+              <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Дата</Typography>
+              <TextField
+                type="date"
+                size="small"
+                fullWidth
+                value={journalDate}
+                onChange={(e) => setJournalDate(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </FormControl>
+
+            <FormControl size="small" fullWidth sx={{ mt: 1 }}>
               <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Статус по умолчанию</Typography>
               <Select
                 value={status}

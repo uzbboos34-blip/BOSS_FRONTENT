@@ -166,6 +166,9 @@ export default function Students() {
   const [searchBrigade, setSearchBrigade] = useState('');
   const [searchColor, setSearchColor] = useState('');
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState({ total: 0, active: 0, archive: 0 });
   const [activeTab, setActiveTab] = useState('workers');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -208,7 +211,11 @@ export default function Students() {
 
   async function fetchWorkers() {
     try {
-      const params = {};
+      const params = {
+        page,
+        limit: ITEMS_PER_PAGE,
+        isActive: activeTab === 'workers' ? 'true' : 'false'
+      };
       if (searchName.trim()) params.name = searchName.trim();
       if (searchPassport.trim()) params.passport = searchPassport.trim();
       if (searchQrCode.trim()) params.qr = searchQrCode.trim();
@@ -217,7 +224,18 @@ export default function Students() {
       if (searchColor) params.color = searchColor;
 
       const res = await api.get('/api/v1/worker', { params });
-      setWorkers(Array.isArray(res.data) ? res.data : (res.data?.data || []));
+      if (res.data && res.data.data !== undefined) {
+        setWorkers(res.data.data);
+        setTotalPages(res.data.totalPages || 1);
+        setTotalCount(res.data.totalCount || 0);
+        if (res.data.stats) {
+          setStats(res.data.stats);
+        }
+      } else {
+        setWorkers(Array.isArray(res.data) ? res.data : []);
+        setTotalPages(1);
+        setTotalCount(Array.isArray(res.data) ? res.data.length : 0);
+      }
     } catch (err) {
       if (err.response?.status === 401) {
         localStorage.removeItem('token');
@@ -243,7 +261,7 @@ export default function Students() {
   useEffect(() => {
     if (!token() || token() === 'undefined') { window.location.href = '/login'; return; }
     fetchWorkers();
-  }, [searchName, searchPassport, searchQrCode, searchJob, searchBrigade, searchColor]);
+  }, [page, activeTab, searchName, searchPassport, searchQrCode, searchJob, searchBrigade, searchColor]);
 
   useEffect(() => {
     fetchGroups();
@@ -351,13 +369,8 @@ export default function Students() {
     }
   };
 
-  // Filter: active vs archive
-  const filtered = workers.filter(w => {
-    return activeTab === 'archive' ? w.isActive === false : w.isActive !== false;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  // Server-side paginated list
+  const paginated = workers;
 
   const getCellValue = (w, key) => {
     switch (key) {
@@ -834,9 +847,9 @@ export default function Students() {
       {/* ─── Stat Cards ─── */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2.5, mb: 3 }}>
         {[
-          { label: 'Всего рабочих', value: workers.length, icon: <PeopleAltIcon sx={{ fontSize: 28, color: '#7b61ff' }} />, bg: '#f0eeff' },
-          { label: 'Активных', value: workers.filter(w => w.isActive !== false).length, icon: <WorkIcon sx={{ fontSize: 28, color: '#10b981' }} />, bg: '#ecfdf5' },
-          { label: 'В архиве', value: workers.filter(w => w.isActive === false).length, icon: <AssignmentIndIcon sx={{ fontSize: 28, color: '#f59e0b' }} />, bg: '#fffbeb' },
+          { label: 'Всего рабочих', value: stats.total, icon: <PeopleAltIcon sx={{ fontSize: 28, color: '#7b61ff' }} />, bg: '#f0eeff' },
+          { label: 'Активных', value: stats.active, icon: <WorkIcon sx={{ fontSize: 28, color: '#10b981' }} />, bg: '#ecfdf5' },
+          { label: 'В архиве', value: stats.archive, icon: <AssignmentIndIcon sx={{ fontSize: 28, color: '#f59e0b' }} />, bg: '#fffbeb' },
         ].map((card, i) => (
           <Paper key={i} elevation={0} sx={{ p: 3, border: '1px solid #e5e7eb', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box>
