@@ -37,6 +37,7 @@ function getToken() {
 
 function clearSession() {
   localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
 }
 
@@ -113,7 +114,13 @@ function requestInterceptor(config) {
 }
 
 api.interceptors.request.use(requestInterceptor, (error) => Promise.reject(error));
-uploadApi.interceptors.request.use(requestInterceptor, (error) => Promise.reject(error));
+uploadApi.interceptors.request.use(
+  (config) => {
+    config._isUpload = true;
+    return requestInterceptor(config);
+  },
+  (error) => Promise.reject(error)
+);
 
 // ─── Response interceptor (shared) ───────────────────────────────────────
 function responseSuccess(response) {
@@ -126,6 +133,20 @@ function responseSuccess(response) {
   }
   return response;
 }
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
 
 async function responseError(error) {
   const config = error.config;
@@ -157,14 +178,74 @@ async function responseError(error) {
       console.warn(`↩ Retrying (${config._retryCount}/${MAX_RETRIES}) in ${wait}ms…`);
     }
     await delay(wait);
-    return api(config);
+    const instance = config._isUpload ? uploadApi : api;
+    return instance(config);
   }
 
-  // ── 401 → clear session & redirect ────────────────────────────────────
-  if (status === 401) {
-    clearSession();
-    if (!window.location.pathname.includes('/login')) {
-      window.location.href = '/login';
+  // ── 401 → refresh token or clear session & redirect ───────────────────
+  if (status === 401 && config && !config._retry) {
+    if (config.url?.includes('auth/refresh')) {
+      clearSession();
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
+    }
+
+    config._retry = true;
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    if (!refreshToken) {
+      clearSession();
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+      error.userMessage = translateError(error);
+      return Promise.reject(error);
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then((token) => {
+          config.headers.Authorization = `Bearer ${token}`;
+          const instance = config._isUpload ? uploadApi : api;
+          return instance(config);
+        })
+        .catch((err) => {
+          return Promise.reject(err);
+        });
+    }
+
+    isRefreshing = true;
+
+    try {
+      const response = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
+        refreshToken,
+      });
+
+      const { accessToken } = response.data;
+      if (accessToken) {
+        localStorage.setItem('token', accessToken);
+        config.headers.Authorization = `Bearer ${accessToken}`;
+
+        processQueue(null, accessToken);
+        isRefreshing = false;
+
+        const instance = config._isUpload ? uploadApi : api;
+        return instance(config);
+      } else {
+        throw new Error('No access token returned');
+      }
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      isRefreshing = false;
+      clearSession();
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+      return Promise.reject(refreshError);
     }
   }
 

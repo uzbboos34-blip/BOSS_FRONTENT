@@ -42,7 +42,22 @@ const scanAnimation = keyframes`
 `;
 
 export default function SupervisorDashboard() {
-  const [tab, setTab] = useState(0); // 0 = Scanner, 1 = Journal, 2 = Stats
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (!token || token === 'undefined') {
+      window.location.href = '/login';
+    }
+  }, [token]);
+
+  if (!token || token === 'undefined') {
+    return null;
+  }
+
+  const [tab, setTab] = useState(() => {
+    const saved = localStorage.getItem('supervisor_active_tab');
+    return saved !== null ? Number(saved) : 0;
+  }); // 0 = Scanner, 1 = Journal, 2 = Stats
   const [scanMode, setScanMode] = useState('camera'); // 'camera', 'manual'
   const [session, setSession] = useState(1);
   const [status, setStatus] = useState('PRESENT');
@@ -601,7 +616,7 @@ export default function SupervisorDashboard() {
             {/* Current parameters chip */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
               <Chip
-                label={`Дата: ${formatDate(journalDate)} • Смена: ${SESSION_OPTIONS.find(o => o.value === session)?.label} • Статус: ${STATUS_OPTIONS.find(o => o.value === status)?.label}`}
+                label={`Дата: ${formatDate(journalDate)} • Смена: ${SESSION_OPTIONS.find(o => o.value === session)?.label}`}
                 onClick={() => setSettingsOpen(true)}
                 onDelete={() => setSettingsOpen(true)}
                 deleteIcon={<SettingsIcon sx={{ '&&': { color: '#7b61ff' } }} />}
@@ -843,9 +858,10 @@ export default function SupervisorDashboard() {
                   type="date"
                   size="small"
                   fullWidth
+                  disabled
                   value={journalDate}
                   onChange={(e) => setJournalDate(e.target.value)}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#f1f5f9' } }}
                 />
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1168,31 +1184,6 @@ export default function SupervisorDashboard() {
                 ))}
               </Select>
             </FormControl>
-
-            <FormControl size="small" fullWidth sx={{ mt: 1 }}>
-              <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Дата</Typography>
-              <TextField
-                type="date"
-                size="small"
-                fullWidth
-                value={journalDate}
-                onChange={(e) => setJournalDate(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
-              />
-            </FormControl>
-
-            <FormControl size="small" fullWidth sx={{ mt: 1 }}>
-              <Typography sx={{ mb: 0.8, fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>Статус по умолчанию</Typography>
-              <Select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                sx={{ borderRadius: '8px' }}
-              >
-                {STATUS_OPTIONS.map(o => (
-                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
           </DialogContent>
           <DialogActions sx={{ p: 2.5, pt: 1 }}>
             <Button variant="contained" fullWidth onClick={() => setSettingsOpen(false)} sx={{ backgroundColor: '#7b61ff', borderRadius: '10px', textTransform: 'none', fontWeight: 700, py: 1.2, '&:hover': { backgroundColor: '#6a50e8' } }}>
@@ -1327,7 +1318,7 @@ export default function SupervisorDashboard() {
         <BottomNavigation
           showLabels
           value={tab}
-          onChange={(e, v) => { setTab(v); setScanResult(null); setErrorMsg(''); }}
+          onChange={(e, v) => { setTab(v); localStorage.setItem('supervisor_active_tab', String(v)); setScanResult(null); setErrorMsg(''); }}
           sx={{
             height: 64,
             '& .MuiBottomNavigationAction-root': { py: 1 },

@@ -243,6 +243,9 @@ export default function Login() {
       
       // Save token and redirect
       localStorage.setItem('token', data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
 
       // Fetch user role info by decoding JWT token
       let role = null;

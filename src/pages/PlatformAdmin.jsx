@@ -27,6 +27,18 @@ const getInitials = (name = '') => {
 
 export default function PlatformAdmin() {
   const navigate = useNavigate();
+  const tokenVal = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (!tokenVal || tokenVal === 'undefined') {
+      navigate('/login', { replace: true });
+    }
+  }, [tokenVal, navigate]);
+
+  if (!tokenVal || tokenVal === 'undefined') {
+    return null;
+  }
+
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);

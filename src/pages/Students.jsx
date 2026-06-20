@@ -507,10 +507,6 @@ export default function Students() {
         return s;
       };
 
-      let successCount = 0;
-      let errorCount = 0;
-      const errors = [];
-
       // Filter valid rows first to calculate progress accurately
       const validRows = [];
       for (let ri = 0; ri < dataRows.length; ri++) {
@@ -528,48 +524,8 @@ export default function Students() {
         return;
       }
 
-      setImportProgress({ current: 0, total: validRows.length });
-
-      // ─── Guruhlarni avvaldan yaratib olish (findOrCreate) ──────────────────
-      // department ustunidan noyob guruh nomlarini yig'amiz
-      const groupCache = {}; // { 'Departman A': 5, 'Departman B': 12, ... }
-      const uniqueGroupNames = new Set();
-      for (const { r } of validRows) {
-        const get = (i) => (i !== -1 && r[i] != null) ? String(r[i]).trim() : '';
-        const groupName = cleanVal(get(idx.department));
-        if (groupName) uniqueGroupNames.add(groupName);
-      }
-
-      for (const groupName of uniqueGroupNames) {
-        try {
-          const res = await api.post('/api/v1/group/find-or-create', { name: groupName });
-          groupCache[groupName] = res.data.id;
-        } catch (e) {
-          console.warn('Guruh yaratib bo\'lmadi:', groupName, e);
-        }
-      }
-      // ───────────────────────────────────────────────────────────────────────
-
-      // ─── Ixtisosliklarni avvaldan yaratib olish (findOrCreate) ─────────────
-      // teamDivision (Ekip Dagilimi) ustunidan noyob ixtisoslik nomlarini yig'amiz
-      const specCache = {}; // { 'Ekip A': 3, 'Ekip B': 7, ... }
-      const uniqueSpecNames = new Set();
-      for (const { r } of validRows) {
-        const get = (i) => (i !== -1 && r[i] != null) ? String(r[i]).trim() : '';
-        const teamVal = cleanVal(get(idx.teamDivision));
-        if (teamVal) uniqueSpecNames.add(teamVal);
-      }
-
-      for (const specName of uniqueSpecNames) {
-        try {
-          const res = await api.post('/api/v1/specialization/find-or-create', { name: specName });
-          specCache[specName] = res.data.id;
-        } catch (e) {
-          console.warn('Ixtisoslik yaratib bo\'lmadi:', specName, e);
-        }
-      }
-      // ───────────────────────────────────────────────────────────────────────
-
+      // Build payload arrays
+      const workersPayload = [];
       for (let i = 0; i < validRows.length; i++) {
         const { ri, r, fullNameVal, passportVal } = validRows[i];
 
@@ -590,18 +546,6 @@ export default function Students() {
         const center= cleanVal(get(idx.centerNo));         if (center)payload.centerNo = center;
         const patNo = cleanVal(get(idx.patentNo));         if (patNo) payload.patentNo = patNo;
 
-        // Guruhga biriktirish — department nomidan groupId topamiz
-        const brigadeKey = cleanVal(get(idx.department));
-        if (brigadeKey && groupCache[brigadeKey]) {
-          payload.groupId = groupCache[brigadeKey];
-        }
-
-        // Ixtisoslikka biriktirish — teamDivision (Ekip Dagilimi) nomidan specializationId topamiz
-        const teamKey = cleanVal(get(idx.teamDivision));
-        if (teamKey && specCache[teamKey]) {
-          payload.specializationId = specCache[teamKey];
-        }
-
         const rawRate = cleanVal(get(idx.hourlyRate));
         if (rawRate) { const rv = parseFloat(rawRate); if (!isNaN(rv)) payload.hourlyRate = rv; }
 
@@ -616,29 +560,30 @@ export default function Students() {
         const ps = parseDate(cleanVal(get(idx.patentStartDate))); if (ps) payload.patentStartDate = ps;
         const pe = parseDate(cleanVal(get(idx.patentEndDate)));   if (pe) payload.patentEndDate = pe;
 
-        try {
-          await api.post('/api/v1/worker', payload);
-          successCount++;
-        } catch (err) {
-          errorCount++;
-          const msg = err.response?.data?.message;
-          errors.push(`Qator ${ri + 2} (${fullNameVal}): ${Array.isArray(msg) ? msg.join(', ') : msg || 'Xato'}`);
-        }
-
-        setImportProgress({ current: i + 1, total: validRows.length });
-        await new Promise(resolve => setTimeout(resolve, 150));
+        workersPayload.push(payload);
       }
 
-      setImportProgress(null);
+      setImportProgress({ current: 0, total: 0 }); // Indicates indeterminate loading
 
-      const groupCount = Object.keys(groupCache).length;
-      const groupNames = Object.keys(groupCache).join(', ');
-      const groupInfo = groupCount > 0
-        ? `\n\n📁 Guruhlar (${groupCount} ta): ${groupNames}`
-        : '';
+      try {
+        const res = await api.post('/api/v1/worker/bulk-import', { workers: workersPayload });
+        const { createdCount, updatedCount, skippedCount, errors } = res.data;
 
-      alert(`Import tugadi!\n✅ Qo'shildi: ${successCount}\n❌ Xato: ${errorCount}${groupInfo}${errors.length > 0 ? '\n\nXatolar:\n' + errors.slice(0, 10).join('\n') + (errors.length > 10 ? `\n...va yana ${errors.length - 10} ta xato` : '') : ''}`);
-      fetchWorkers();
+        alert(
+          `Import tugadi!\n` +
+          `✅ Yangi qo'shildi: ${createdCount}\n` +
+          `🔄 Yangilandi: ${updatedCount}\n` +
+          `⏭️ O'zgarishsiz qoldi (o'tkazib yuborildi): ${skippedCount}\n` +
+          `❌ Xatolar: ${errors.length}` +
+          (errors.length > 0 ? `\n\nXatolar tafsiloti:\n` + errors.slice(0, 10).join('\n') + (errors.length > 10 ? `\n...va yana ${errors.length - 10} ta xato` : '') : '')
+        );
+      } catch (err) {
+        console.error('Bulk import error:', err);
+        alert('Ishchilarni import qilishda xatolik yuz berdi: ' + (err.response?.data?.message || err.message || 'Noma\'lum xatolik'));
+      } finally {
+        setImportProgress(null);
+        fetchWorkers();
+      }
     };
 
     if (isExcel) {
@@ -1321,12 +1266,12 @@ export default function Students() {
           </Typography>
           {importProgress && (
             <Box>
-              <LinearProgress variant="determinate" 
-                value={(importProgress.current / importProgress.total) * 100}
+              <LinearProgress variant={importProgress.total === 0 ? "indeterminate" : "determinate"} 
+                value={importProgress.total === 0 ? undefined : (importProgress.current / importProgress.total) * 100}
                 sx={{ height: 6, borderRadius: 3, bgcolor: '#f3f4f6', '& .MuiLinearProgress-bar': { bgcolor: '#7b61ff', borderRadius: 3 } }} 
               />
               <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151', mt: 1.5 }}>
-                {importProgress.current} / {importProgress.total} ta ishchi yuklandi
+                {importProgress.total === 0 ? 'Ma\'lumotlar qayta ishlanmoqda...' : `${importProgress.current} / ${importProgress.total} ta ishchi yuklandi`}
               </Typography>
             </Box>
           )}

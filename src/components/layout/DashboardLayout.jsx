@@ -48,6 +48,17 @@ export default function DashboardLayout() {
       console.error(e);
     }
   }
+
+  useEffect(() => {
+    if (!tokenVal || tokenVal === 'undefined') {
+      navigate('/login', { replace: true });
+    }
+  }, [tokenVal, navigate]);
+
+  if (!tokenVal || tokenVal === 'undefined') {
+    return null;
+  }
+
   useEffect(() => {
     if (userRole === 'PLATFORM_SUPER_ADMIN') {
       if (!location.pathname.startsWith('/platform')) {
