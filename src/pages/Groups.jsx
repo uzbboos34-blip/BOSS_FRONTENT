@@ -720,7 +720,6 @@ export default function Groups() {
             onChange={(e) => setForm({ name: e.target.value })}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
             sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
-            autoFocus
           />
         </Box>
 

@@ -146,7 +146,7 @@ export default function AuditLog() {
         </Box>
 
         {/* Table view */}
-        <TableContainer sx={{ border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
+        <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
           <Table>
             <TableHead sx={{ backgroundColor: '#f9fafb' }}>
               <TableRow>
@@ -181,6 +181,73 @@ export default function AuditLog() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Mobile Cards View */}
+        <Box sx={{ display: { xs: 'block', md: 'none' }, mt: 2 }}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4, color: '#9ca3af' }}>Загрузка логов...</Box>
+          ) : paginated.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 4, textAlign: 'center', border: '1px solid #e5e7eb', borderRadius: '16px', color: '#9ca3af', backgroundColor: '#f9fafb' }}>
+              Логи не найдены
+            </Paper>
+          ) : (
+            <Stack spacing={2}>
+              {paginated.map((log) => (
+                <Paper
+                  key={log.id}
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '16px',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111827' }}>
+                        {log.userFullName || '—'}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.72rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase' }}>
+                        {log.role || '—'}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        backgroundColor: `${getActionColor(log.action)}20`,
+                        color: getActionColor(log.action),
+                        border: `1px solid ${getActionColor(log.action)}40`
+                      }}
+                    >
+                      {log.action}
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, fontSize: '0.82rem', mb: 1.5 }}>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Сущность</Typography>
+                      <Typography sx={{ fontWeight: 600, color: '#4b5563' }}>{log.entityType || '—'}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600 }}>Дата и время</Typography>
+                      <Typography sx={{ fontWeight: 600, color: '#4b5563' }}>{formatDate(log.createdAt)}</Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ borderTop: '1px dashed #f3f4f6', pt: 1.5 }}>
+                    <Typography sx={{ color: '#6b7280', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600, mb: 0.5 }}>Описание</Typography>
+                    <Typography sx={{ fontSize: '0.85rem', color: '#374151', lineHeight: 1.4 }}>
+                      {log.description || '—'}
+                    </Typography>
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+        </Box>
 
         {/* Pagination */}
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb', mt: 2 }}>
