@@ -566,7 +566,7 @@ export default function Students() {
       setImportProgress({ current: 0, total: 0 }); // Indicates indeterminate loading
 
       try {
-        const res = await api.post('/api/v1/worker/bulk-import', { workers: workersPayload });
+        const res = await api.post('/api/v1/worker/bulk-import', { workers: workersPayload }, { timeout: 120_000 });
         const { createdCount, updatedCount, skippedCount, errors } = res.data;
 
         alert(

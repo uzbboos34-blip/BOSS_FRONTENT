@@ -56,6 +56,38 @@ export default function Rooms() {
 
   const [allWorkers, setAllWorkers] = useState([]);
   const [selectedWorkers, setSelectedWorkers] = useState([]);
+  const [workerSearchQuery, setWorkerSearchQuery] = useState('');
+
+  const filteredWorkersForSelection = allWorkers.filter(w => {
+    const term = workerSearchQuery.toLowerCase();
+    const name = w.fullName?.toLowerCase() || '';
+    const passport = w.passport?.toLowerCase() || '';
+    const dept = w.department?.toLowerCase() || '';
+    const division = w.teamDivision?.toLowerCase() || '';
+    return name.includes(term) || passport.includes(term) || dept.includes(term) || division.includes(term);
+  });
+
+  const handleToggleWorker = (worker) => {
+    setSelectedWorkers(prev => {
+      const exists = prev.some(w => w.id === worker.id);
+      if (exists) {
+        return prev.filter(w => w.id !== worker.id);
+      } else {
+        return [...prev, worker];
+      }
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    setSelectedWorkers(prev => {
+      const toAdd = filteredWorkersForSelection.filter(fw => !prev.some(w => w.id === fw.id));
+      return [...prev, ...toAdd];
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedWorkers([]);
+  };
 
   // Export states
   const ALL_COLUMNS = [
@@ -102,6 +134,7 @@ export default function Rooms() {
     const todayStr = new Date().toISOString().split('T')[0];
     setForm({ passport: '', paidAt: todayStr, numberOfMonths: 1 });
     setSelectedWorkers([]);
+    setWorkerSearchQuery('');
     setIsDrawerOpen(true);
   }
 
@@ -515,26 +548,93 @@ export default function Rooms() {
           </Typography>
 
           <Stack spacing={3} sx={{ flex: 1 }}>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
                 Выберите рабочих (одного или нескольких) *
               </Typography>
-              <Autocomplete
-                multiple
+              
+              <TextField
                 size="small"
-                options={allWorkers}
-                getOptionLabel={(w) => w ? `${w.fullName || ''} (${w.passport || 'Без паспорта'})` : ''}
-                value={selectedWorkers}
-                onChange={(e, v) => setSelectedWorkers(v)}
-                isOptionEqualToValue={(option, value) => option && value && option.id === value.id}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Поиск по имени или паспорту..."
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#fff' } }}
-                  />
-                )}
+                fullWidth
+                placeholder="Поиск по имени, паспорту, группе..."
+                value={workerSearchQuery}
+                onChange={(e) => setWorkerSearchQuery(e.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#fff' } }}
               />
+
+              <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
+                <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600 }}>
+                  Выбрано: {selectedWorkers.length} из {allWorkers.length}
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    size="small"
+                    onClick={handleSelectAllFiltered}
+                    sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#7b61ff', fontWeight: 700 }}
+                  >
+                    Выбрать все
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={handleClearSelection}
+                    sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}
+                  >
+                    Сбросить
+                  </Button>
+                </Stack>
+              </Stack>
+
+              <Box sx={{
+                border: '1px solid #e5e7eb',
+                borderRadius: '16px',
+                maxHeight: 280,
+                overflowY: 'auto',
+                bgcolor: '#f9fafb',
+                p: 1
+              }}>
+                {filteredWorkersForSelection.length === 0 ? (
+                  <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
+                    Рабочие не найдены
+                  </Typography>
+                ) : (
+                  filteredWorkersForSelection.map((w) => {
+                    const isChecked = selectedWorkers.some(sw => sw.id === w.id);
+                    return (
+                      <Box
+                        key={w.id}
+                        onClick={() => handleToggleWorker(w)}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          p: 1,
+                          borderRadius: '10px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          '&:hover': { bgcolor: '#f3f4f6' },
+                          mb: 0.5,
+                          '&:last-child': { mb: 0 }
+                        }}
+                      >
+                        <Checkbox
+                          size="small"
+                          checked={isChecked}
+                          onChange={() => {}} // Event handled by parent Box onClick
+                          sx={{ p: 0.5, '&.Mui-checked': { color: '#7b61ff' } }}
+                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', noWrap: true }}>
+                            {w.fullName}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                            {w.passport || 'Без паспорта'} {w.department ? `· ${w.department}` : ''} {w.teamDivision ? `· ${w.teamDivision}` : ''}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })
+                )}
+              </Box>
             </Box>
 
             <Box>
