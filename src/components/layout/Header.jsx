@@ -137,13 +137,13 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
     >
       {/* First Row (Main Header items) */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContext: 'space-between', justifyContent: 'space-between', width: '100%' }}>
-        {/* Left Side: Hamburger toggle (mobile) & Calendar & Actions */}
+        {/* Left Side: Calendar & Actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Hamburger toggle — only on mobile */}
+          {/* Hamburger toggle — completely hidden as requested */}
           <IconButton
             onClick={onMenuToggle}
             sx={{
-              display: { xs: 'flex', md: 'none' },
+              display: 'none',
               backgroundColor: '#fff',
               border: '1px solid #e5e7eb',
               borderRadius: '12px',
@@ -244,6 +244,19 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
           {/* Notifications */}
           <IconButton sx={{ border: '1px solid #e5e7eb', borderRadius: '10px' }}>
             <NotificationsNoneIcon sx={{ color: '#4b5563', fontSize: 20 }} />
+          </IconButton>
+
+          {/* Logout Button */}
+          <IconButton 
+            onClick={handleLogout}
+            sx={{ 
+              border: '1px solid #e5e7eb', 
+              borderRadius: '10px',
+              color: '#ef4444',
+              '&:hover': { backgroundColor: '#fef2f2', borderColor: '#ef4444' }
+            }}
+          >
+            <LogoutIcon sx={{ fontSize: 20 }} />
           </IconButton>
 
           {/* Dark Mode — desktop only */}
