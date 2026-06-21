@@ -1179,15 +1179,6 @@ export default function Attendance() {
                 <TextField 
                   {...params} 
                   placeholder="Поиск по имени, паспорту..." 
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {searchingWorkers ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    )
-                  }}
                   sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }} 
                 />
               )}
