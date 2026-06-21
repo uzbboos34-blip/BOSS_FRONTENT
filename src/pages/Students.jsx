@@ -167,6 +167,7 @@ export default function Students() {
   const [searchJob, setSearchJob] = useState('');
   const [searchBrigade, setSearchBrigade] = useState('');
   const [searchColor, setSearchColor] = useState('');
+  const [searchBirthdayDays, setSearchBirthdayDays] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -224,6 +225,7 @@ export default function Students() {
       if (searchJob.trim()) params.job = searchJob.trim();
       if (searchBrigade.trim()) params.brigade = searchBrigade.trim();
       if (searchColor) params.color = searchColor;
+      if (searchBirthdayDays.trim()) params.birthdayDays = searchBirthdayDays.trim();
 
       const res = await api.get('/api/v1/worker', { params });
       if (res.data && res.data.data !== undefined) {
@@ -263,7 +265,7 @@ export default function Students() {
   useEffect(() => {
     if (!token() || token() === 'undefined') { window.location.href = '/login'; return; }
     fetchWorkers();
-  }, [page, activeTab, searchName, searchPassport, searchQrCode, searchJob, searchBrigade, searchColor]);
+  }, [page, activeTab, searchName, searchPassport, searchQrCode, searchJob, searchBrigade, searchColor, searchBirthdayDays]);
 
   useEffect(() => {
     fetchGroups();
@@ -838,7 +840,7 @@ export default function Students() {
         </Box>
         <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #e5e7eb', borderRadius: '16px', backgroundColor: '#fff' }}>
           <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', mb: 2 }}>Фильтры поиска (из базы данных)</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' }, gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(7, 1fr)' }, gap: 2, alignItems: 'center' }}>
             <TextField
               size="small" label="Ф.И.О. рабочего" placeholder="Поиск по имени" value={searchName}
               onChange={(e) => { setSearchName(e.target.value); setPage(1); }}
@@ -896,6 +898,15 @@ export default function Students() {
                 </MenuItem>
               </Select>
             </FormControl>
+            <TextField
+              size="small"
+              type="number"
+              label="Дней до ДР"
+              placeholder="Например: 2"
+              value={searchBirthdayDays}
+              onChange={(e) => { setSearchBirthdayDays(e.target.value); setPage(1); }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+            />
           </Box>
         </Paper>
       </Box>

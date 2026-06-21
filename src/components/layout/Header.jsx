@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, InputBase, IconButton, Avatar, Typography, Select, MenuItem, Badge, Button, Menu, Divider, Switch } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
@@ -11,6 +11,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import api from '../../api/axios';
 
 export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isManagementActive, onMenuToggle }) {
   const theme = useTheme();
@@ -19,8 +20,32 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
   const location = useLocation();
 
   const [anchorEl, setAnchorEl] = useState(null);
+  const [notiAnchorEl, setNotiAnchorEl] = useState(null);
+  const [birthdaysToday, setBirthdaysToday] = useState([]);
 
   const tokenVal = localStorage.getItem('token');
+
+  useEffect(() => {
+    async function fetchBirthdaysToday() {
+      try {
+        const res = await api.get('/api/v1/worker/birthdays/today');
+        setBirthdaysToday(Array.isArray(res.data) ? res.data : []);
+      } catch (e) {
+        console.error("Failed to fetch today's birthdays:", e);
+      }
+    }
+    if (tokenVal) {
+      fetchBirthdaysToday();
+    }
+  }, [tokenVal]);
+
+  const handleNotiClick = (event) => {
+    setNotiAnchorEl(event.currentTarget);
+  };
+
+  const handleNotiClose = () => {
+    setNotiAnchorEl(null);
+  };
   let role = '';
   if (tokenVal) {
     try {
@@ -242,9 +267,52 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
           </Select>
 
           {/* Notifications */}
-          <IconButton sx={{ border: '1px solid #e5e7eb', borderRadius: '10px' }}>
-            <NotificationsNoneIcon sx={{ color: '#4b5563', fontSize: 20 }} />
+          <IconButton 
+            onClick={handleNotiClick}
+            sx={{ border: '1px solid #e5e7eb', borderRadius: '10px' }}
+          >
+            <Badge badgeContent={birthdaysToday.length} color="error">
+              <NotificationsNoneIcon sx={{ color: '#4b5563', fontSize: 20 }} />
+            </Badge>
           </IconButton>
+
+          <Menu
+            anchorEl={notiAnchorEl}
+            open={Boolean(notiAnchorEl)}
+            onClose={handleNotiClose}
+            PaperProps={{
+              sx: {
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                minWidth: 280,
+                maxHeight: 350,
+                mt: 1
+              }
+            }}
+          >
+            <Box sx={{ p: 2, pb: 1 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#111827' }}>
+                Оповещения
+              </Typography>
+            </Box>
+            <Divider />
+            {birthdaysToday.length === 0 ? (
+              <MenuItem sx={{ py: 1.5, fontSize: '0.85rem', color: '#6b7280', whiteSpace: 'normal' }}>
+                Сегодня нет дней рождения
+              </MenuItem>
+            ) : (
+              birthdaysToday.map((worker) => (
+                <MenuItem key={worker.id} onClick={handleNotiClose} sx={{ py: 1.5, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827' }}>
+                    🎂 Сегодня день рождения!
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.8rem', color: '#4b5563', mt: 0.5 }}>
+                    {worker.fullName} ({worker.passport || 'Без паспорта'})
+                  </Typography>
+                </MenuItem>
+              ))
+            )}
+          </Menu>
 
           {/* Logout Button */}
           <IconButton 

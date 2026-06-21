@@ -454,6 +454,7 @@ export default function Attendance() {
 
   const handleOpenRegister = () => {
     setSelectedWorker(null);
+    setWorkerSearchQuery('');
     setRegDate(new Date().toISOString().split('T')[0]);
     setRegSession(1);
     setRegStatus('PRESENT');
@@ -1161,7 +1162,12 @@ export default function Attendance() {
             <Autocomplete
               size="small"
               options={searchedWorkers}
-              getOptionLabel={(w) => `${w.fullName} (${w.passport || 'Без паспорта'})`}
+              getOptionLabel={(w) => {
+                if (typeof w === 'string') return w;
+                if (!w) return '';
+                return `${w.fullName || ''} (${w.passport || 'Без паспорта'})`;
+              }}
+              isOptionEqualToValue={(option, value) => option?.id === value?.id}
               value={selectedWorker}
               onChange={(e, v) => setSelectedWorker(v)}
               inputValue={workerSearchQuery}
