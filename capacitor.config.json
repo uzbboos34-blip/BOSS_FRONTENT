@@ -1,5 +1,10 @@
 {
   "appId": "com.uzbboos34.boss",
   "appName": "BOSS",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": false
+    }
+  }
 }

@@ -10,8 +10,10 @@ import Profile from './pages/Profile';
 import PlatformAdmin from './pages/PlatformAdmin';
 import SupervisorDashboard from './pages/SupervisorDashboard';
 import { UploadProvider } from './context/UploadContext';
+import { useLiveUpdate } from './hooks/useLiveUpdate';
 
 function App() {
+  useLiveUpdate();
   return (
     <BrowserRouter>
       <UploadProvider>
