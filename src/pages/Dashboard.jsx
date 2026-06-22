@@ -233,17 +233,6 @@ function getGreeting() {
   return { text: 'Добрый вечер', emoji: '🌇' };
 }
 
-function getUserName() {
-  try {
-    const raw = localStorage.getItem('user');
-    if (raw) {
-      const u = JSON.parse(raw);
-      return u.firstName || u.first_name || u.name || 'Администратор';
-    }
-  } catch { /* ignore */ }
-  return 'Администратор';
-}
-
 function fmtNum(n) {
   if (n === undefined || n === null) return '—';
   return Number(n).toLocaleString('ru-RU');
@@ -292,7 +281,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const { text: greeting, emoji } = getGreeting();
-  const userName = getUserName();
+  const [userName, setUserName] = useState('Администратор');
 
   const tokenVal = localStorage.getItem('token');
   let userRole = null;
@@ -314,19 +303,46 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    // Load username from cache
+    try {
+      const cached = localStorage.getItem('user_profile');
+      if (cached) {
+        const u = JSON.parse(cached);
+        if (u.fullName || u.full_name) {
+          setUserName(u.fullName || u.full_name);
+        }
+      }
+    } catch {}
+
+    // Fetch stats
     (async () => {
       try {
         const res = await api.get('/api/v1/dashboard/stats');
         setStats(res.data?.data || res.data);
       } catch (e) {
         console.error('Dashboard stats error:', e);
-        // Use zeros so counters still render
         setStats({ groups: 0, courses: 0, students: 0, teachers: 0, rooms: 0, payments: 0 });
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+
+    // Fetch user profile
+    if (tokenVal) {
+      (async () => {
+        try {
+          const res = await api.get('/api/v1/auth/me');
+          const userData = res.data?.data || res.data;
+          if (userData && (userData.fullName || userData.full_name)) {
+            setUserName(userData.fullName || userData.full_name);
+            localStorage.setItem('user_profile', JSON.stringify(userData));
+          }
+        } catch (e) {
+          console.error('Dashboard profile fetch error:', e);
+        }
+      })();
+    }
+  }, [tokenVal]);
 
   /* Derived */
   const cards = stats

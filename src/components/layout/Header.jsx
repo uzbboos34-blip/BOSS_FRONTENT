@@ -46,16 +46,35 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
   const handleNotiClose = () => {
     setNotiAnchorEl(null);
   };
-  const getUserName = () => {
+  const [userFullName, setUserFullName] = useState(() => {
     try {
-      const raw = localStorage.getItem('user');
-      if (raw) {
-        const u = JSON.parse(raw);
-        return u.firstName || u.first_name || u.name || 'Администратор';
+      const cached = localStorage.getItem('user_profile');
+      if (cached) {
+        const u = JSON.parse(cached);
+        return u.fullName || u.full_name || '';
       }
-    } catch { /* ignore */ }
-    return 'Администратор';
-  };
+    } catch {}
+    return '';
+  });
+
+  useEffect(() => {
+    async function fetchMe() {
+      try {
+        const res = await api.get('/api/v1/auth/me');
+        const userData = res.data?.data || res.data;
+        if (userData) {
+          const name = userData.fullName || userData.full_name || '';
+          setUserFullName(name);
+          localStorage.setItem('user_profile', JSON.stringify(userData));
+        }
+      } catch (e) {
+        console.error("Failed to fetch user profile in Header:", e);
+      }
+    }
+    if (tokenVal && !userFullName) {
+      fetchMe();
+    }
+  }, [tokenVal, userFullName]);
 
   let role = '';
   if (tokenVal) {
@@ -387,9 +406,26 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
           mt: 0.5
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: '#111827' }}>
-            {getUserName()}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Avatar 
+            sx={{ 
+              width: 30, 
+              height: 30, 
+              fontSize: '0.8rem', 
+              fontWeight: 750, 
+              bgcolor: '#7b61ff15', 
+              color: '#7b61ff',
+              border: '1.5px solid rgba(123, 97, 255, 0.25)'
+            }}
+          >
+            {(() => {
+              const name = userFullName || 'Администратор';
+              const parts = name.trim().split(' ');
+              return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : (parts[0]?.[0] || '?').toUpperCase();
+            })()}
+          </Avatar>
+          <Typography sx={{ fontSize: '0.92rem', fontWeight: 850, color: '#0f172a', letterSpacing: '-0.3px' }}>
+            {userFullName || 'Администратор'}
           </Typography>
         </Box>
 
