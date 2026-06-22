@@ -270,7 +270,21 @@ export default function DashboardLayout() {
       </Box>
 
       {/* Mobile Bottom Navigation */}
-      <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, display: { xs: 'flex', md: 'none' } }} elevation={3}>
+      <Paper 
+        sx={{ 
+          position: 'fixed', 
+          bottom: 10, 
+          left: 10, 
+          right: 10, 
+          zIndex: 1000, 
+          display: { xs: 'flex', md: 'none' },
+          borderRadius: '16px',
+          overflow: 'hidden',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(229, 231, 235, 0.5)'
+        }} 
+        elevation={0}
+      >
         <BottomNavigation
           showLabels
           value={getActiveTabValue()}
@@ -278,7 +292,11 @@ export default function DashboardLayout() {
             const path = navItems[newValue].path;
             navigate(path);
           }}
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%', 
+            height: 60,
+            backgroundColor: '#ffffff'
+          }}
         >
           {navItems.map((item, index) => (
             <BottomNavigationAction
@@ -287,7 +305,18 @@ export default function DashboardLayout() {
               icon={item.icon}
               sx={{
                 minWidth: 'auto',
-                px: 1,
+                padding: '4px 0 6px',
+                color: '#9ca3af',
+                '& .MuiBottomNavigationAction-label': {
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  transition: 'font-size 0.2s',
+                  marginTop: '2px',
+                  '&.Mui-selected': {
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                  }
+                },
                 '&.Mui-selected': {
                   color: userRole === 'STUDENT' ? '#c5a059' : '#7b61ff',
                 }

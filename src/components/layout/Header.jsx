@@ -145,7 +145,7 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
     );
   }
 
-  const showAddButton = role !== 'TEACHER' && role !== 'STUDENT';
+  const showAddButton = false; // Always hide, as requested by user
 
   return (
     <Box
@@ -218,24 +218,24 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
                 display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
                 backgroundColor: '#f9fafb',
-                borderRadius: '12px',
-                padding: '8px 16px',
-                width: { sm: '180px', md: '250px' },
+                borderRadius: '10px',
+                padding: '6px 12px',
+                width: { sm: '160px', md: '220px' },
                 border: '1px solid #e5e7eb',
                 '&:focus-within': {
                   borderColor: '#7b61ff',
                   backgroundColor: '#fff',
-                  boxShadow: '0 0 0 4px rgba(123, 97, 255, 0.1)'
+                  boxShadow: '0 0 0 3px rgba(123, 97, 255, 0.1)'
                 },
                 transition: 'all 0.3s ease'
               }}
             >
-              <SearchIcon sx={{ color: '#9ca3af', fontSize: 22, mr: 1.5 }} />
+              <SearchIcon sx={{ color: '#9ca3af', fontSize: 18, mr: 1 }} />
               <InputBase
                 placeholder="Поиск..."
                 sx={{
                   flex: 1,
-                  fontSize: '0.95rem',
+                  fontSize: '0.85rem',
                   fontWeight: 500,
                   '& input::placeholder': { color: '#9ca3af', opacity: 1 }
                 }}
@@ -246,25 +246,6 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
 
         {/* Right Side: Language select, Notification, Dark mode, Avatar */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-          {/* Language Selector — desktop only */}
-          <Select
-            value="ru"
-            size="small"
-            IconComponent={KeyboardArrowDownIcon}
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              boxShadow: 'none',
-              '.MuiOutlinedInput-notchedOutline': { border: 0 },
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: 500,
-              '&:hover': { backgroundColor: '#f3f4f6' }
-            }}
-          >
-            <MenuItem value="uz">O'zbekcha</MenuItem>
-            <MenuItem value="ru">Русский</MenuItem>
-          </Select>
 
           {/* Notifications */}
           <IconButton 
@@ -375,13 +356,6 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
                 </Box>
               </MenuItem>
               <Divider sx={{ my: 0.5 }} />
-              <MenuItem sx={{ fontSize: '0.9rem', fontWeight: 600, py: 1 }}>
-                Язык: Русский
-              </MenuItem>
-              <MenuItem sx={{ fontSize: '0.9rem', fontWeight: 600, py: 1 }}>
-                Язык: O'zbekcha
-              </MenuItem>
-              <Divider sx={{ my: 0.5 }} />
             </Box>
             
             <MenuItem onClick={() => { handleAvatarClose(); handleLogout(); }} sx={{ color: '#ef4444', fontSize: '0.9rem', fontWeight: 700, py: 1 }}>
@@ -398,24 +372,24 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
           display: { xs: 'flex', md: 'none' },
           alignItems: 'center',
           backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '8px 16px',
+          borderRadius: '10px',
+          padding: '6px 12px',
           width: '100%',
-          mt: 1.5,
+          mt: 1,
           border: '1px solid #e5e7eb',
           '&:focus-within': {
             borderColor: '#7b61ff',
-            boxShadow: '0 0 0 4px rgba(123, 97, 255, 0.1)'
+            boxShadow: '0 0 0 3px rgba(123, 97, 255, 0.1)'
           },
           transition: 'all 0.3s ease'
         }}
       >
-        <SearchIcon sx={{ color: '#9ca3af', fontSize: 22, mr: 1.5 }} />
+        <SearchIcon sx={{ color: '#9ca3af', fontSize: 18, mr: 1 }} />
         <InputBase
           placeholder="Поиск..."
           fullWidth
           sx={{
-            fontSize: '0.95rem',
+            fontSize: '0.85rem',
             fontWeight: 500,
             '& input::placeholder': { color: '#9ca3af', opacity: 1 }
           }}

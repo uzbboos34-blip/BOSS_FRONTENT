@@ -173,6 +173,58 @@ const CSS = `
     border-radius: 99px;
     font-size: .68rem; font-weight: 700; letter-spacing: .3px;
   }
+
+  @media (max-width: 768px) {
+    .dash-greeting { margin-bottom: 16px !important; }
+    .dash-greeting > div:first-of-type { font-size: 1.25rem !important; }
+    .dash-cards { gap: 10px !important; margin-bottom: 16px !important; }
+    .dash-card {
+      padding: 14px 12px !important;
+      border-radius: 16px !important;
+      flex: 1 1 calc(50% - 6px) !important;
+      min-width: calc(50% - 6px) !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,.02) !important;
+    }
+    .dash-card-icon {
+      width: 36px !important;
+      height: 36px !important;
+      border-radius: 10px !important;
+      font-size: 16px !important;
+      margin-bottom: 8px !important;
+    }
+    .dash-card-label {
+      font-size: 0.65rem !important;
+      margin-bottom: 2px !important;
+    }
+    .dash-card-value {
+      font-size: 1.35rem !important;
+    }
+    .dash-card-trend {
+      font-size: 0.65rem !important;
+      margin-top: 4px !important;
+    }
+    .dash-card-glow {
+      width: 60px !important;
+      height: 60px !important;
+    }
+    .dash-bottom { gap: 14px !important; }
+    .dash-panel { border-radius: 16px !important; }
+    .dash-panel-header { padding: 12px 14px 8px !important; }
+    .dash-panel-title { font-size: 0.85rem !important; }
+    .dash-panel-body { padding: 8px 12px !important; }
+    .dash-actions { padding: 10px !important; gap: 8px !important; }
+    .dash-action-btn {
+      padding: 10px 8px !important;
+      border-radius: 10px !important;
+      font-size: 0.72rem !important;
+    }
+    .dash-action-icon {
+      width: 32px !important;
+      height: 32px !important;
+      border-radius: 8px !important;
+      font-size: 14px !important;
+    }
+  }
 `;
 
 /* ─── Helpers ─────────────────────────────────────────────────────── */
