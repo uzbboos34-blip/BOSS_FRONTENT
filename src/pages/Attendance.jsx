@@ -78,10 +78,8 @@ export default function Attendance() {
   // Register manual attendance states
   const [registerOpen, setRegisterOpen] = useState(false);
   const [allWorkers, setAllWorkers] = useState([]);
-  const [searchedWorkers, setSearchedWorkers] = useState([]);
   const [workerSearchQuery, setWorkerSearchQuery] = useState('');
-  const [searchingWorkers, setSearchingWorkers] = useState(false);
-  const [selectedWorker, setSelectedWorker] = useState(null);
+  const [selectedWorkers, setSelectedWorkers] = useState([]);
   const [regDate, setRegDate] = useState(new Date().toISOString().split('T')[0]);
   const [regSession, setRegSession] = useState(1);
   const [regStatus, setRegStatus] = useState('PRESENT');
@@ -228,35 +226,7 @@ export default function Attendance() {
     }
   }, [subTab, selectedSupId]);
 
-  useEffect(() => {
-    if (workerSearchQuery.trim().length < 2) {
-      setSearchedWorkers([]);
-      return;
-    }
 
-    let active = true;
-    setSearchingWorkers(true);
-
-    const delayDebounce = setTimeout(async () => {
-      try {
-        const params = { search: workerSearchQuery.trim(), page: 1, limit: 15, isActive: 'true' };
-        const res = await api.get('/api/v1/worker', { params });
-        if (active) {
-          const list = res.data?.data || (Array.isArray(res.data) ? res.data : []);
-          setSearchedWorkers(list);
-        }
-      } catch (err) {
-        console.error('Error searching workers:', err);
-      } finally {
-        if (active) setSearchingWorkers(false);
-      }
-    }, 300);
-
-    return () => {
-      active = false;
-      clearTimeout(delayDebounce);
-    };
-  }, [workerSearchQuery]);
 
   // Operations
   const handleExportCSV = () => {
@@ -453,29 +423,34 @@ export default function Attendance() {
   };
 
   const handleOpenRegister = () => {
-    setSelectedWorker(null);
+    setSelectedWorkers([]);
     setWorkerSearchQuery('');
     setRegDate(new Date().toISOString().split('T')[0]);
     setRegSession(1);
     setRegStatus('PRESENT');
     setRegNote('');
+    fetchAllWorkers();
     setRegisterOpen(true);
   };
 
   const handleRegister = async () => {
-    if (!selectedWorker) {
-      alert('Пожалуйста, выберите рабочего');
+    if (selectedWorkers.length === 0) {
+      alert('Пожалуйста, выберите хотя бы одного рабочего');
       return;
     }
     setSubmittingReg(true);
     try {
-      await api.post('/api/v1/attendance/scan', {
-        qrCode: selectedWorker.qrCode,
-        status: regStatus,
-        session: Number(regSession),
-        date: new Date(regDate).toISOString(),
-        note: regNote.trim() || undefined
-      });
+      await Promise.all(
+        selectedWorkers.map(worker =>
+          api.post('/api/v1/attendance/scan', {
+            qrCode: worker.qrCode,
+            status: regStatus,
+            session: Number(regSession),
+            date: new Date(regDate).toISOString(),
+            note: regNote.trim() || undefined
+          })
+        )
+      );
       getLogs();
       setRegisterOpen(false);
     } catch (e) {
@@ -1156,33 +1131,97 @@ export default function Attendance() {
         <Box sx={{ p: 3, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 3.5 }}>
           {/* Worker Select */}
           <Box>
-            <Typography sx={{ mb: 1, fontWeight: 600, fontSize: '0.82rem', color: '#374151' }}>
-              Рабочий <span style={{ color: '#ef4444' }}>*</span>
+            <Typography sx={{ mb: 1, fontWeight: 600, fontSize: '0.82rem', color: '#374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Рабочие ({selectedWorkers.length} выбрано) <span style={{ color: '#ef4444' }}>*</span></span>
+              <Box>
+                <Button size="small" sx={{ textTransform: 'none', py: 0, px: 1, minWidth: 0, fontSize: '0.72rem', color: '#7b61ff', fontWeight: 600 }}
+                  onClick={() => {
+                    const filtered = allWorkers.filter(w => {
+                      const q = workerSearchQuery.toLowerCase();
+                      return w.fullName.toLowerCase().includes(q) || (w.passport && w.passport.toLowerCase().includes(q));
+                    });
+                    setSelectedWorkers(filtered);
+                  }}>
+                  Выбрать всех
+                </Button>
+                <Button size="small" sx={{ textTransform: 'none', py: 0, px: 1, minWidth: 0, fontSize: '0.72rem', color: '#ef4444', fontWeight: 600, ml: 1 }}
+                  onClick={() => setSelectedWorkers([])}>
+                  Сбросить
+                </Button>
+              </Box>
             </Typography>
-            <Autocomplete
+            
+            {/* Local Search Input */}
+            <TextField 
+              fullWidth
               size="small"
-              options={searchedWorkers}
-              getOptionLabel={(w) => {
-                if (typeof w === 'string') return w;
-                if (!w) return '';
-                return `${w.fullName || ''} (${w.passport || 'Без паспорта'})`;
-              }}
-              isOptionEqualToValue={(option, value) => option?.id === value?.id}
-              value={selectedWorker}
-              onChange={(e, v) => setSelectedWorker(v)}
-              inputValue={workerSearchQuery}
-              onInputChange={(e, v) => setWorkerSearchQuery(v)}
-              loading={searchingWorkers}
-              noOptionsText="Введите минимум 2 символа..."
-              loadingText="Поиск..."
-              renderInput={(params) => (
-                <TextField 
-                  {...params} 
-                  placeholder="Поиск по имени, паспорту..." 
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }} 
-                />
-              )}
+              placeholder="Поиск по имени, паспорту..." 
+              value={workerSearchQuery}
+              onChange={(e) => setWorkerSearchQuery(e.target.value)}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' }, mb: 1.5 }} 
             />
+
+            {/* Scrollable Checkbox List */}
+            <Paper elevation={0} sx={{ border: '1px solid #e5e7eb', borderRadius: '10px', bgcolor: '#fff', maxHeight: 220, overflowY: 'auto', p: 1 }}>
+              {allWorkers.filter(w => {
+                const q = workerSearchQuery.toLowerCase();
+                return w.fullName.toLowerCase().includes(q) || (w.passport && w.passport.toLowerCase().includes(q));
+              }).length === 0 ? (
+                <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
+                  Рабочие не найдены
+                </Typography>
+              ) : (
+                allWorkers.filter(w => {
+                  const q = workerSearchQuery.toLowerCase();
+                  return w.fullName.toLowerCase().includes(q) || (w.passport && w.passport.toLowerCase().includes(q));
+                }).map(worker => {
+                  const isChecked = selectedWorkers.some(sw => sw.id === worker.id);
+                  return (
+                    <Box 
+                      key={worker.id}
+                      onClick={() => {
+                        setSelectedWorkers(prev => 
+                          prev.some(sw => sw.id === worker.id)
+                            ? prev.filter(sw => sw.id !== worker.id)
+                            : [...prev, worker]
+                        );
+                      }}
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        py: 0.75, 
+                        px: 1.5, 
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: '#f3f4f6' }
+                      }}
+                    >
+                      <Checkbox
+                        size="small"
+                        checked={isChecked}
+                        sx={{ p: 0.5, mr: 1, '&.Mui-checked': { color: '#7b61ff' } }}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          setSelectedWorkers(prev => 
+                            e.target.checked
+                              ? [...prev, worker]
+                              : prev.filter(sw => sw.id !== worker.id)
+                          );
+                        }}
+                      />
+                      <Box>
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>
+                          {worker.fullName}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                          Паспорт: {worker.passport || '—'} | Бригада: {worker.group?.name || '—'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                })
+              )}
+            </Paper>
           </Box>
 
           {/* Date Picker */}
