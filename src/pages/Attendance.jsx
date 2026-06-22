@@ -1210,6 +1210,7 @@ export default function Attendance() {
                 value={regSession}
                 onChange={(e) => setRegSession(e.target.value)}
                 sx={{ borderRadius: '8px', bgcolor: '#fff' }}
+                MenuProps={{ sx: { zIndex: 2001 } }}
               >
                 {SESSION_OPTIONS.map(o => (
                   <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
@@ -1228,6 +1229,7 @@ export default function Attendance() {
                 value={regStatus}
                 onChange={(e) => setRegStatus(e.target.value)}
                 sx={{ borderRadius: '8px', bgcolor: '#fff' }}
+                MenuProps={{ sx: { zIndex: 2001 } }}
               >
                 {STATUS_OPTIONS.map(o => (
                   <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
