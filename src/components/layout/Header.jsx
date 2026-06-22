@@ -387,15 +387,9 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
           mt: 0.5
         }}
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '1.05rem', fontWeight: 800, color: '#111827' }}>
             {getUserName()}
-          </Typography>
-          <Typography sx={{ fontSize: '0.72rem', color: '#6b7280', fontWeight: 600, mt: 0.2 }}>
-            {(() => {
-              const r = localStorage.getItem('token') ? JSON.parse(atob(localStorage.getItem('token').split('.')[1])).role : '';
-              return r === 'SUPER_ADMIN' ? 'Супер Администратор' : r === 'ADMIN' ? 'Администратор' : r === 'SUPERVISOR' ? 'Супервайзер' : 'Пользователь';
-            })()}
           </Typography>
         </Box>
 
