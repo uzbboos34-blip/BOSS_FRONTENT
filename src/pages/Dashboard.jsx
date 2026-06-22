@@ -175,55 +175,52 @@ const CSS = `
   }
 
   @media (max-width: 768px) {
-    .dash-greeting { margin-bottom: 16px !important; }
-    .dash-greeting > div:first-of-type { font-size: 1.25rem !important; }
-    .dash-cards { gap: 10px !important; margin-bottom: 16px !important; }
+    .dash-greeting { margin-bottom: 12px !important; }
+    .dash-greeting > div:first-of-type { font-size: 1.15rem !important; }
+    .dash-greeting > div:last-of-type { font-size: 0.72rem !important; }
+    .dash-cards { gap: 8px !important; margin-bottom: 12px !important; }
     .dash-card {
-      padding: 14px 12px !important;
-      border-radius: 16px !important;
-      flex: 1 1 calc(50% - 6px) !important;
-      min-width: calc(50% - 6px) !important;
-      box-shadow: 0 2px 8px rgba(0,0,0,.02) !important;
+      padding: 10px 8px !important;
+      border-radius: 12px !important;
+      flex: 1 1 calc(50% - 4px) !important;
+      min-width: calc(50% - 4px) !important;
+      box-shadow: 0 1px 6px rgba(0,0,0,.02) !important;
     }
     .dash-card-icon {
-      width: 36px !important;
-      height: 36px !important;
-      border-radius: 10px !important;
-      font-size: 16px !important;
-      margin-bottom: 8px !important;
-    }
-    .dash-card-label {
-      font-size: 0.65rem !important;
-      margin-bottom: 2px !important;
-    }
-    .dash-card-value {
-      font-size: 1.35rem !important;
-    }
-    .dash-card-trend {
-      font-size: 0.65rem !important;
-      margin-top: 4px !important;
-    }
-    .dash-card-glow {
-      width: 60px !important;
-      height: 60px !important;
-    }
-    .dash-bottom { gap: 14px !important; }
-    .dash-panel { border-radius: 16px !important; }
-    .dash-panel-header { padding: 12px 14px 8px !important; }
-    .dash-panel-title { font-size: 0.85rem !important; }
-    .dash-panel-body { padding: 8px 12px !important; }
-    .dash-actions { padding: 10px !important; gap: 8px !important; }
-    .dash-action-btn {
-      padding: 10px 8px !important;
-      border-radius: 10px !important;
-      font-size: 0.72rem !important;
-    }
-    .dash-action-icon {
-      width: 32px !important;
-      height: 32px !important;
+      width: 30px !important;
+      height: 30px !important;
       border-radius: 8px !important;
       font-size: 14px !important;
+      margin-bottom: 4px !important;
     }
+    .dash-card-label {
+      font-size: 0.58rem !important;
+      margin-bottom: 1px !important;
+    }
+    .dash-card-value {
+      font-size: 1.15rem !important;
+    }
+    .dash-card-trend {
+      font-size: 0.58rem !important;
+      margin-top: 2px !important;
+    }
+    .dash-card-glow {
+      width: 50px !important;
+      height: 50px !important;
+    }
+    .dash-bottom { gap: 10px !important; }
+    .dash-panel { border-radius: 12px !important; }
+    .dash-panel-header { padding: 10px 12px 6px !important; }
+    .dash-panel-title { font-size: 0.78rem !important; }
+    .dash-panel-body { padding: 6px 10px !important; }
+
+    .quick-actions-panel { display: none !important; }
+    .recent-activities-panel { display: none !important; }
+
+    .bar-row { margin-bottom: 10px !important; }
+    .bar-label { font-size: 0.72rem !important; }
+    .bar-pct { font-size: 0.72rem !important; }
+    .bar-track { height: 5px !important; }
   }
 `;
 
@@ -450,7 +447,7 @@ export default function Dashboard() {
       <div className="dash-bottom">
 
         {/* Quick actions */}
-        <div className="dash-panel" style={{ flex: '0 1 320px', animationDelay: '100ms' }}>
+        <div className="dash-panel quick-actions-panel" style={{ flex: '0 1 320px', animationDelay: '100ms' }}>
           <div className="dash-panel-header">
             <span className="dash-panel-title">⚡ Быстрые действия</span>
           </div>
@@ -503,7 +500,7 @@ export default function Dashboard() {
 
         {/* Recent activity */}
         {userRole === 'SUPER_ADMIN' && (
-          <div className="dash-panel" style={{ flex: '1 1 280px', animationDelay: '220ms' }}>
+          <div className="dash-panel recent-activities-panel" style={{ flex: '1 1 280px', animationDelay: '220ms' }}>
             <div className="dash-panel-header">
               <span className="dash-panel-title">🕐 Последние действия</span>
               <span
