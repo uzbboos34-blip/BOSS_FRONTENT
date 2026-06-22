@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import {
   Box,
   TextField,
@@ -188,9 +189,11 @@ export default function Login() {
     setSuccess(false);
 
     try {
-      const backendUrl = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
-        ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '')
-        : (import.meta.env.DEV ? '' : 'https://boss-backend-glek.onrender.com');
+      const backendUrl = Capacitor.isNativePlatform()
+        ? 'https://boss-backend-glek.onrender.com'
+        : (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
+            ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '')
+            : (import.meta.env.DEV ? '' : 'https://boss-backend-glek.onrender.com'));
 
       let formattedPhone = login.trim();
       if (!formattedPhone.startsWith('+')) {

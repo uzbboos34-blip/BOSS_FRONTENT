@@ -1,9 +1,12 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 
 const BASE_URL =
-  import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
-    ? import.meta.env.VITE_API_URL
-    : (import.meta.env.DEV ? '/' : 'https://boss-backend-glek.onrender.com');
+  Capacitor.isNativePlatform()
+    ? 'https://boss-backend-glek.onrender.com'
+    : (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
+        ? import.meta.env.VITE_API_URL
+        : (import.meta.env.DEV ? '/' : 'https://boss-backend-glek.onrender.com'));
 
 const IS_DEV = import.meta.env.DEV;
 
