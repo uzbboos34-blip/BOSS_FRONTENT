@@ -46,6 +46,17 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
   const handleNotiClose = () => {
     setNotiAnchorEl(null);
   };
+  const getUserName = () => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        return u.firstName || u.first_name || u.name || 'Администратор';
+      }
+    } catch { /* ignore */ }
+    return 'Администратор';
+  };
+
   let role = '';
   if (tokenVal) {
     try {
@@ -366,77 +377,63 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
         </Box>
       </Box>
 
-      {/* Second Row: Mobile Search, Notifications & Logout (only on mobile) */}
+      {/* Second Row: Mobile Name/Greeting, Notifications & Logout (only on mobile) */}
       <Box
         sx={{
           display: { xs: 'flex', md: 'none' },
           alignItems: 'center',
-          gap: 1,
+          justifyContent: 'space-between',
           width: '100%',
           mt: 0.5
         }}
       >
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: '#fff',
-            borderRadius: '10px',
-            padding: '6px 12px',
-            border: '1px solid #e5e7eb',
-            '&:focus-within': {
-              borderColor: '#7b61ff',
-              boxShadow: '0 0 0 3px rgba(123, 97, 255, 0.1)'
-            },
-            transition: 'all 0.3s ease'
-          }}
-        >
-          <SearchIcon sx={{ color: '#9ca3af', fontSize: 18, mr: 1 }} />
-          <InputBase
-            placeholder="Поиск..."
-            fullWidth
-            sx={{
-              fontSize: '0.85rem',
-              fontWeight: 500,
-              '& input::placeholder': { color: '#9ca3af', opacity: 1 }
-            }}
-          />
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>
+            {getUserName()}
+          </Typography>
+          <Typography sx={{ fontSize: '0.72rem', color: '#6b7280', fontWeight: 600, mt: 0.2 }}>
+            {(() => {
+              const r = localStorage.getItem('token') ? JSON.parse(atob(localStorage.getItem('token').split('.')[1])).role : '';
+              return r === 'SUPER_ADMIN' ? 'Супер Администратор' : r === 'ADMIN' ? 'Администратор' : r === 'SUPERVISOR' ? 'Супервайзер' : 'Пользователь';
+            })()}
+          </Typography>
         </Box>
 
-        {/* Notifications */}
-        <IconButton 
-          onClick={handleNotiClick}
-          sx={{ 
-            backgroundColor: '#fff', 
-            border: '1px solid #e5e7eb', 
-            borderRadius: '10px',
-            p: 1,
-            width: 36,
-            height: 36
-          }}
-        >
-          <Badge badgeContent={birthdaysToday.length} color="error">
-            <NotificationsNoneIcon sx={{ color: '#4b5563', fontSize: 18 }} />
-          </Badge>
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Notifications */}
+          <IconButton 
+            onClick={handleNotiClick}
+            sx={{ 
+              backgroundColor: '#fff', 
+              border: '1px solid #e5e7eb', 
+              borderRadius: '10px',
+              p: 1,
+              width: 36,
+              height: 36
+            }}
+          >
+            <Badge badgeContent={birthdaysToday.length} color="error">
+              <NotificationsNoneIcon sx={{ color: '#4b5563', fontSize: 18 }} />
+            </Badge>
+          </IconButton>
 
-        {/* Logout Button */}
-        <IconButton 
-          onClick={handleLogout}
-          sx={{ 
-            backgroundColor: '#fff',
-            border: '1px solid #e5e7eb', 
-            borderRadius: '10px',
-            p: 1,
-            width: 36,
-            height: 36,
-            color: '#ef4444',
-            '&:hover': { backgroundColor: '#fef2f2', borderColor: '#ef4444' }
-          }}
-        >
-          <LogoutIcon sx={{ fontSize: 18 }} />
-        </IconButton>
+          {/* Logout Button */}
+          <IconButton 
+            onClick={handleLogout}
+            sx={{ 
+              backgroundColor: '#fff',
+              border: '1px solid #e5e7eb', 
+              borderRadius: '10px',
+              p: 1,
+              width: 36,
+              height: 36,
+              color: '#ef4444',
+              '&:hover': { backgroundColor: '#fef2f2', borderColor: '#ef4444' }
+            }}
+          >
+            <LogoutIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Box>
       </Box>
     </Box>
   );
