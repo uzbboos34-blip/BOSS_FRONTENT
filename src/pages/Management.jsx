@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Typography, Tab, Tabs } from '@mui/material';
 import Courses from './Courses';
@@ -30,6 +30,7 @@ const TAB_TO_PATH = [
 export default function Management() {
   const location = useLocation();
   const navigate = useNavigate();
+  const tabsRef = useRef(null);
 
   const tokenVal = localStorage.getItem('token');
   let userRole = null;
@@ -51,6 +52,22 @@ export default function Management() {
   const activeTab = (location.pathname === '/management/audit-log' && userRole !== 'SUPER_ADMIN')
     ? 0
     : (PATH_TO_TAB[location.pathname] ?? 0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tabsRef.current) {
+        const activeTabEl = tabsRef.current.querySelector('.Mui-selected');
+        if (activeTabEl) {
+          activeTabEl.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+          });
+        }
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -74,12 +91,13 @@ export default function Management() {
       <Typography variant="h4" sx={{ fontWeight: 800, color: '#111827', mb: 1 }}>Управление</Typography>
 
       {/* Horizontal Tabs */}
-      <Box sx={{ mb: 4 }}>
+      <Box ref={tabsRef} sx={{ mb: 4 }}>
         <Tabs
           value={activeTab}
           onChange={(e, v) => navigate(TAB_TO_PATH[v])}
           variant="scrollable"
           scrollButtons="auto"
+          allowScrollButtonsMobile
           sx={{
             minHeight: 40,
             '& .MuiTabs-indicator': { backgroundColor: '#7b61ff', height: 3, borderRadius: '3px 3px 0 0' },
