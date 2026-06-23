@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 import { Html5Qrcode } from 'html5-qrcode';
+import { Capacitor } from '@capacitor/core';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { toastBus } from '../utils/toast';
+import BoltIcon from '@mui/icons-material/Bolt';
 import {
   Box, Typography, Button, Paper, TextField, MenuItem, Select, FormControl,
   BottomNavigation, BottomNavigationAction, Chip, Stack, List, ListItem,
@@ -79,6 +83,68 @@ export default function SupervisorDashboard() {
   const [cooldownActive, setCooldownActive] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const [updateAvailable, setUpdateAvailable] = useState(localStorage.getItem('updateAvailable') === 'true');
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    const handleUpdateEvent = () => {
+      setUpdateAvailable(true);
+    };
+
+    window.addEventListener('appUpdateAvailable', handleUpdateEvent);
+    return () => {
+      window.removeEventListener('appUpdateAvailable', handleUpdateEvent);
+    };
+  }, []);
+
+  const handleApplyUpdate = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      toastBus.show('Обновление работает только в мобильном приложении', 'warning');
+      return;
+    }
+    if (isUpdating) return;
+    setIsUpdating(true);
+    toastBus.show('Загрузка обновления, пожалуйста, подождите...', 'info');
+    try {
+      const latestVersion = localStorage.getItem('latestVersion');
+      const downloadUrl = localStorage.getItem('updateUrl');
+
+      if (!downloadUrl || !latestVersion) {
+        toastBus.show('Данные об обновлении не найдены. Пожалуйста, перезапустите приложение.', 'error');
+        setIsUpdating(false);
+        return;
+      }
+
+      console.log(`[LiveUpdate] Supervisor downloading manual update: ${latestVersion} from ${downloadUrl}`);
+      const versionObj = await CapacitorUpdater.download({
+        url: downloadUrl,
+        version: latestVersion
+      });
+
+      console.log('[LiveUpdate] Supervisor setting manual update...');
+      await CapacitorUpdater.set(versionObj);
+
+      toastBus.show('Система успешно обновлена! Вам необходимо войти заново.', 'success');
+
+      // Clear local storage and log out
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('updateAvailable');
+      localStorage.removeItem('latestVersion');
+      localStorage.removeItem('updateUrl');
+
+      // Wait 1.5s then reload to Login screen
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+
+    } catch (e) {
+      console.error(e);
+      toastBus.show('Произошла ошибка при обновлении: ' + (e.message || e), 'error');
+      setIsUpdating(false);
+    }
+  };
 
   // Remaining list choice dialog states
   const [selectedWorker, setSelectedWorker] = useState(null);
@@ -660,9 +726,28 @@ export default function SupervisorDashboard() {
             <Typography sx={{ fontSize: '0.68rem', color: '#64748b' }}>{supervisorName}</Typography>
           </Box>
         </Box>
-        <IconButton size="small" onClick={handleLogout} sx={{ color: '#ef4444', border: '1px solid #fecaca', borderRadius: '8px', p: 0.8 }}>
-          <LogoutIcon sx={{ fontSize: 18 }} />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {updateAvailable && (
+            <IconButton 
+              size="small" 
+              onClick={handleApplyUpdate}
+              disabled={isUpdating}
+              sx={{ 
+                color: '#f59e0b', 
+                border: '1px solid #fef3c7', 
+                borderRadius: '8px', 
+                p: 0.8,
+                bgcolor: '#fffbeb',
+                '&:hover': { bgcolor: '#fde68a' }
+              }}
+            >
+              <BoltIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          )}
+          <IconButton size="small" onClick={handleLogout} sx={{ color: '#ef4444', border: '1px solid #fecaca', borderRadius: '8px', p: 0.8 }}>
+            <LogoutIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Box>
       </Box>
 
       {/* Main Content Area */}
