@@ -325,6 +325,11 @@ export default function SupervisorDashboard() {
 
   // Operations
   const autoSubmitScan = async (codeToSubmit) => {
+    let cleanCode = codeToSubmit ? String(codeToSubmit).trim() : '';
+    if (cleanCode.includes(':')) {
+      cleanCode = cleanCode.split(':')[0].trim();
+    }
+
     if (submittingScan) return;
     setSubmittingScan(true);
     setErrorMsg('');
@@ -335,11 +340,11 @@ export default function SupervisorDashboard() {
       try {
         const cached = localStorage.getItem(`cached_workers_${supervisorId}`);
         const cachedWorkersList = cached ? JSON.parse(cached) : [];
-        const worker = cachedWorkersList.find(w => w.qrCode === codeToSubmit || w.passport === codeToSubmit);
-        const workerName = worker ? worker.fullName : `Ishchi (${codeToSubmit})`;
+        const worker = cachedWorkersList.find(w => w.qrCode === cleanCode || w.passport === cleanCode);
+        const workerName = worker ? worker.fullName : `Ishchi (${cleanCode})`;
 
         const isDuplicate = pendingScans.some(
-          p => (p.qrCode === codeToSubmit || (worker && p.qrCode === worker.qrCode)) &&
+          p => (p.qrCode === cleanCode || (worker && p.qrCode === worker.qrCode)) &&
           p.date === journalDate &&
           p.session === Number(session)
         );
@@ -349,7 +354,7 @@ export default function SupervisorDashboard() {
 
         const newScan = {
           id: Math.random().toString(36).substring(2, 9),
-          qrCode: worker ? worker.qrCode : codeToSubmit,
+          qrCode: worker ? worker.qrCode : cleanCode,
           status,
           session: Number(session),
           date: journalDate,
@@ -378,7 +383,7 @@ export default function SupervisorDashboard() {
 
     try {
       const res = await api.post('/api/v1/attendance/scan', {
-        qrCode: codeToSubmit,
+        qrCode: cleanCode,
         status,
         session: Number(session),
         date: journalDate

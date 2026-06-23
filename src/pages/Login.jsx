@@ -523,6 +523,8 @@ export default function Login() {
             <TextField
               fullWidth
               size="small"
+              name="username"
+              autoComplete="username"
               placeholder="+7 (999) 000-00-00"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
@@ -567,6 +569,8 @@ export default function Login() {
               fullWidth
               size="small"
               type={showPassword ? 'text' : 'password'}
+              name="password"
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
