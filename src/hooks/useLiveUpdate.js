@@ -61,9 +61,6 @@ export function useLiveUpdate() {
 
         console.log(`[LiveUpdate] Current version: ${currentVersion}, Latest version: ${latestVersion}`);
         
-        // Show temporary diagnostic toast to help resolve update issues
-        toastBus.show(`[Тест] Версия APK: ${currentVersion}, На сервере: ${latestVersion}`, 'info');
-
         if (currentVersion !== latestVersion) {
           console.log(`[LiveUpdate] New update detected! Saving metadata: ${latestVersion}`);
           localStorage.setItem('updateAvailable', 'true');
