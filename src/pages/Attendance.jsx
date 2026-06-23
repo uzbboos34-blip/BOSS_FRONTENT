@@ -803,8 +803,8 @@ export default function Attendance() {
 
             {/* Logs Table */}
             {/* Logs Table */}
-            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
-              <Table size="small">
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 1100 }}>
                 <TableHead sx={{ backgroundColor: '#f9fafb' }}>
                   <TableRow>
                     {['Рабочий', 'Серия/номер паспорта', 'Примечание', 'Дата', 'Сессия', 'Статус', 'Кто отметил', 'Действия'].map(col => (
@@ -1002,8 +1002,8 @@ export default function Attendance() {
             </Box>
 
             {/* Assigned Workers Table */}
-            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
-              <Table size="small">
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 850 }}>
                 <TableHead sx={{ backgroundColor: '#f9fafb' }}>
                   <TableRow>
                     {['Рабочий', 'Серия/номер паспорта', 'Должность', 'Бригада / Группа', 'Действия'].map(col => (

@@ -474,8 +474,8 @@ export default function Rooms() {
         </Box>
 
         {/* Table view */}
-        <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
-          <Table>
+        <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid #e5e7eb', borderRadius: '16px', overflowX: 'auto' }}>
+          <Table sx={{ minWidth: 950 }}>
             <TableHead sx={{ backgroundColor: '#f9fafb' }}>
               <TableRow>
                 {['Рабочий', 'Серия/номер паспорта', 'Дата оплаты', 'Период действия', 'Оплачено месяцев', 'Кем добавлен', 'Действия'].map(col => (
