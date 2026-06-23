@@ -41,6 +41,17 @@ const scanAnimation = keyframes`
   100% { top: 0%; }
 `;
 
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const scaleUp = keyframes`
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+`;
+
+
 export default function SupervisorDashboard() {
   const token = localStorage.getItem('token');
 
@@ -65,6 +76,8 @@ export default function SupervisorDashboard() {
   const [scanResult, setScanResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [submittingScan, setSubmittingScan] = useState(false);
+  const [cooldownActive, setCooldownActive] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Remaining list choice dialog states
@@ -324,13 +337,51 @@ export default function SupervisorDashboard() {
   }, [tab, supervisorId, journalDate, journalSession]);
 
   // Operations
+  const triggerSuccessFeedback = () => {
+    // 1. Sound Feedback (Pleasant sine wave beep at 880Hz)
+    try {
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtxClass) {
+        const audioCtx = new AudioCtxClass();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.12); // Duration 120ms
+      }
+    } catch (e) {
+      console.warn('Audio feedback blocked or unsupported:', e);
+    }
+
+    // 2. Tactile / Haptic Vibration
+    if (navigator.vibrate) {
+      navigator.vibrate(100);
+    }
+
+    // 3. Display Success Overlay & Enable Scan Cooldown
+    setShowSuccessOverlay(true);
+    setCooldownActive(true);
+
+    setTimeout(() => {
+      setShowSuccessOverlay(false);
+      setCooldownActive(false);
+    }, 2000); // 2-second lock/cooldown
+  };
+
   const autoSubmitScan = async (codeToSubmit) => {
     let cleanCode = codeToSubmit ? String(codeToSubmit).trim() : '';
     if (cleanCode.includes(':')) {
       cleanCode = cleanCode.split(':')[0].trim();
     }
 
-    if (submittingScan) return;
+    if (submittingScan || cooldownActive) return;
     setSubmittingScan(true);
     setErrorMsg('');
     setScanResult(null);
@@ -373,8 +424,15 @@ export default function SupervisorDashboard() {
           status,
           message: 'Сохранено локально (офлайн)'
         });
+
+        triggerSuccessFeedback();
       } catch (err) {
         setErrorMsg(err.message || 'Не удалось сохранить офлайн');
+        // Prevent immediate retry spam on error
+        setCooldownActive(true);
+        setTimeout(() => {
+          setCooldownActive(false);
+        }, 2000);
       } finally {
         setSubmittingScan(false);
       }
@@ -388,9 +446,16 @@ export default function SupervisorDashboard() {
         session: Number(session),
         date: journalDate
       });
-      setScanResult(res.data?.data || { success: true, message: res.data?.message || 'Успешно!' });
+      const data = res.data?.data || { success: true, message: res.data?.message || 'Успешно!' };
+      setScanResult(data);
+      triggerSuccessFeedback();
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Не удалось отправить посещение');
+      // Prevent immediate retry spam on error
+      setCooldownActive(true);
+      setTimeout(() => {
+        setCooldownActive(false);
+      }, 2000);
     } finally {
       setSubmittingScan(false);
     }
@@ -732,6 +797,39 @@ export default function SupervisorDashboard() {
                     }} />
                   </Box>
 
+                  {/* Success Overlay with checkmark (ptichka) and cooldown visual */}
+                  {showSuccessOverlay && (
+                    <Box sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: 'rgba(16, 185, 129, 0.9)', // Beautiful translucent emerald green
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 30,
+                      animation: `${fadeIn} 0.2s ease-out`
+                    }}>
+                      <CheckCircleOutlinedIcon sx={{ 
+                        color: '#fff', 
+                        fontSize: 80, 
+                        mb: 1.5,
+                        animation: `${scaleUp} 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)`
+                      }} />
+                      <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.2rem' }}>
+                        Успешно!
+                      </Typography>
+                      {scanResult?.workerName && (
+                        <Typography sx={{ color: '#ecfdf5', fontSize: '0.85rem', mt: 0.5, px: 2, textAlign: 'center', fontWeight: 600 }}>
+                          {scanResult.workerName}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+
                   <Typography sx={{ 
                     position: 'absolute',
                     bottom: 15,
@@ -833,27 +931,7 @@ export default function SupervisorDashboard() {
               </IconButton>
             </Box>
 
-            {/* Scan Feedback State Messages inside Journal */}
-            {scanResult && (
-              <Alert 
-                icon={<CheckCircleOutlinedIcon fontSize="inherit" />} 
-                severity="success" 
-                sx={{ borderRadius: '12px' }}
-                onClose={() => setScanResult(null)}
-              >
-                {scanResult.workerName ? (
-                  <strong>"{scanResult.workerName}" отмечен: {getStatusLabel(scanResult.status)}</strong>
-                ) : (
-                  scanResult.message || 'Успешно зарегистрировано!'
-                )}
-              </Alert>
-            )}
 
-            {errorMsg && (
-              <Alert severity="error" sx={{ borderRadius: '12px' }} onClose={() => setErrorMsg('')}>
-                {errorMsg}
-              </Alert>
-            )}
 
             {/* Date, Shift Select & Subtabs Toggle */}
             <Paper elevation={0} sx={{ p: 2, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
