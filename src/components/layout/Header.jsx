@@ -8,10 +8,14 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
+import BoltIcon from '@mui/icons-material/Bolt';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../api/axios';
+import { Capacitor } from '@capacitor/core';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { toastBus } from '../../utils/toast';
 
 export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isManagementActive, onMenuToggle }) {
   const theme = useTheme();
@@ -24,6 +28,68 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
   const [birthdaysToday, setBirthdaysToday] = useState([]);
 
   const tokenVal = localStorage.getItem('token');
+
+  const [updateAvailable, setUpdateAvailable] = useState(localStorage.getItem('updateAvailable') === 'true');
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    const handleUpdateEvent = () => {
+      setUpdateAvailable(true);
+    };
+
+    window.addEventListener('appUpdateAvailable', handleUpdateEvent);
+    return () => {
+      window.removeEventListener('appUpdateAvailable', handleUpdateEvent);
+    };
+  }, []);
+
+  const handleApplyUpdate = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      toastBus.show('Обновление работает только в мобильном приложении', 'warning');
+      return;
+    }
+    if (isUpdating) return;
+    setIsUpdating(true);
+    toastBus.show('Загрузка обновления, пожалуйста, подождите...', 'info');
+    try {
+      const latestVersion = localStorage.getItem('latestVersion');
+      const downloadUrl = localStorage.getItem('updateUrl');
+
+      if (!downloadUrl || !latestVersion) {
+        toastBus.show('Данные об обновлении не найдены. Пожалуйста, перезапустите приложение.', 'error');
+        setIsUpdating(false);
+        return;
+      }
+
+      console.log(`[LiveUpdate] Header downloading manual update: ${latestVersion} from ${downloadUrl}`);
+      const versionObj = await CapacitorUpdater.download({
+        url: downloadUrl,
+        version: latestVersion
+      });
+
+      console.log('[LiveUpdate] Header setting manual update...');
+      await CapacitorUpdater.set(versionObj);
+
+      toastBus.show('Система успешно обновлена! Вам необходимо войти заново.', 'success');
+
+      // Clear local storage and log out
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('updateAvailable');
+      localStorage.removeItem('latestVersion');
+      localStorage.removeItem('updateUrl');
+
+      // Wait 1.5s then reload to Login screen
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+
+    } catch (e) {
+      console.error(e);
+      toastBus.show('Произошла ошибка при обновлении: ' + (e.message || e), 'error');
+      setIsUpdating(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchBirthdaysToday() {
@@ -142,8 +208,26 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
           <MenuIcon sx={{ fontSize: 20 }} />
         </IconButton>
 
-        {/* Right: Notification and Logout icons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {/* Update Button (Student Mobile) */}
+          {updateAvailable && (
+            <IconButton 
+              onClick={handleApplyUpdate}
+              disabled={isUpdating}
+              sx={{ 
+                backgroundColor: '#faede0', 
+                border: '1.5px solid #c5a059', 
+                borderRadius: '12px',
+                p: 1.2,
+                width: 42,
+                height: 42,
+                color: '#c5a059'
+              }}
+            >
+              <BoltIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          )}
+
           {/* Notifications count "33" in red circle badge */}
           <IconButton sx={{ 
             backgroundColor: '#ffffff',
@@ -430,6 +514,25 @@ export default function Header({ isSidebarCollapsed, setIsSidebarCollapsed, isMa
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Update Button (Admin Mobile) */}
+          {updateAvailable && (
+            <IconButton 
+              onClick={handleApplyUpdate}
+              disabled={isUpdating}
+              sx={{ 
+                backgroundColor: '#f5f3ff', 
+                border: '1.5px solid #7b61ff', 
+                borderRadius: '10px',
+                p: 1,
+                width: 36,
+                height: 36,
+                color: '#7b61ff'
+              }}
+            >
+              <BoltIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          )}
+
           {/* Notifications */}
           <IconButton 
             onClick={handleNotiClick}
