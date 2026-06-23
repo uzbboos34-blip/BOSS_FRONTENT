@@ -521,6 +521,7 @@ export default function Login() {
               Номер телефона
             </Typography>
             <TextField
+              id="username"
               fullWidth
               size="small"
               name="username"
@@ -566,6 +567,7 @@ export default function Login() {
               Пароль
             </Typography>
             <TextField
+              id="password"
               fullWidth
               size="small"
               type={showPassword ? 'text' : 'password'}

@@ -73,6 +73,16 @@ export default function SupervisorDashboard() {
     const saved = localStorage.getItem('supervisor_active_tab');
     return saved !== null ? Number(saved) : 0;
   }); // 0 = Scanner, 1 = Journal, 2 = Stats
+
+  const scanParamsRef = useRef({
+    submittingScan: false,
+    cooldownActive: false,
+    session: 1,
+    status: 'PRESENT',
+    journalDate: '',
+    pendingScans: [],
+    supervisorId: null
+  });
   const [scanMode, setScanMode] = useState('camera'); // 'camera', 'manual'
   const [session, setSession] = useState(1);
   const [status, setStatus] = useState('PRESENT');
@@ -156,6 +166,17 @@ export default function SupervisorDashboard() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingScans, setPendingScans] = useState([]);
   const [syncingOffline, setSyncingOffline] = useState(false);
+
+  // Keep the scanParamsRef always updated with latest states to prevent stale closure issues in the scanner callback
+  scanParamsRef.current = {
+    submittingScan,
+    cooldownActive,
+    session,
+    status,
+    journalDate,
+    pendingScans,
+    supervisorId
+  };
 
   // Load pending scans from local storage
   const loadPendingScans = () => {
@@ -433,10 +454,12 @@ export default function SupervisorDashboard() {
 
     // 3. Display Success Overlay & Enable Scan Cooldown
     setShowSuccessOverlay(true);
+    scanParamsRef.current.cooldownActive = true;
     setCooldownActive(true);
 
     setTimeout(() => {
       setShowSuccessOverlay(false);
+      scanParamsRef.current.cooldownActive = false;
       setCooldownActive(false);
     }, 2000); // 2-second lock/cooldown
   };
@@ -447,7 +470,14 @@ export default function SupervisorDashboard() {
       cleanCode = cleanCode.split(':')[0].trim();
     }
 
-    if (submittingScan || cooldownActive) return;
+    const params = scanParamsRef.current;
+    if (params.submittingScan || params.cooldownActive) {
+      console.log('[Scanner] Blocked scan due to active lock (submit or cooldown)');
+      return;
+    }
+
+    // Set locks immediately in the ref synchronously
+    params.submittingScan = true;
     setSubmittingScan(true);
     setErrorMsg('');
     setScanResult(null);
@@ -455,15 +485,15 @@ export default function SupervisorDashboard() {
     
     if (!navigator.onLine) {
       try {
-        const cached = localStorage.getItem(`cached_workers_${supervisorId}`);
+        const cached = localStorage.getItem(`cached_workers_${params.supervisorId}`);
         const cachedWorkersList = cached ? JSON.parse(cached) : [];
         const worker = cachedWorkersList.find(w => w.qrCode === cleanCode || w.passport === cleanCode);
         const workerName = worker ? worker.fullName : `Ishchi (${cleanCode})`;
 
-        const isDuplicate = pendingScans.some(
+        const isDuplicate = params.pendingScans.some(
           p => (p.qrCode === cleanCode || (worker && p.qrCode === worker.qrCode)) &&
-          p.date === journalDate &&
-          p.session === Number(session)
+          p.date === params.journalDate &&
+          p.session === Number(params.session)
         );
         if (isDuplicate) {
           throw new Error('Ishchi ushbu sessiya uchun allaqachon oflayn belgilangan');
@@ -472,22 +502,22 @@ export default function SupervisorDashboard() {
         const newScan = {
           id: Math.random().toString(36).substring(2, 9),
           qrCode: worker ? worker.qrCode : cleanCode,
-          status,
-          session: Number(session),
-          date: journalDate,
+          status: params.status,
+          session: Number(params.session),
+          date: params.journalDate,
           note: null,
           workerName,
           passport: worker ? worker.passport : '',
           createdAt: new Date().toISOString()
         };
 
-        const updatedPending = [...pendingScans, newScan];
+        const updatedPending = [...params.pendingScans, newScan];
         localStorage.setItem('pending_scans', JSON.stringify(updatedPending));
         setPendingScans(updatedPending);
 
         setScanResult({
           workerName,
-          status,
+          status: params.status,
           message: 'Сохранено локально (офлайн)'
         });
 
@@ -495,11 +525,14 @@ export default function SupervisorDashboard() {
       } catch (err) {
         setErrorMsg(err.message || 'Не удалось сохранить офлайн');
         // Prevent immediate retry spam on error
+        params.cooldownActive = true;
         setCooldownActive(true);
         setTimeout(() => {
+          params.cooldownActive = false;
           setCooldownActive(false);
         }, 2000);
       } finally {
+        params.submittingScan = false;
         setSubmittingScan(false);
       }
       return;
@@ -508,9 +541,9 @@ export default function SupervisorDashboard() {
     try {
       const res = await api.post('/api/v1/attendance/scan', {
         qrCode: cleanCode,
-        status,
-        session: Number(session),
-        date: journalDate
+        status: params.status,
+        session: Number(params.session),
+        date: params.journalDate
       });
       const data = res.data?.data || { success: true, message: res.data?.message || 'Успешно!' };
       setScanResult(data);
@@ -518,11 +551,14 @@ export default function SupervisorDashboard() {
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Не удалось отправить посещение');
       // Prevent immediate retry spam on error
+      params.cooldownActive = true;
       setCooldownActive(true);
       setTimeout(() => {
+        params.cooldownActive = false;
         setCooldownActive(false);
       }, 2000);
     } finally {
+      params.submittingScan = false;
       setSubmittingScan(false);
     }
   };
