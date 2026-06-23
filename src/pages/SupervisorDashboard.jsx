@@ -51,11 +51,19 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-const scaleUp = keyframes`
-  from { transform: scale(0.6); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-`;
+const getLocalDateString = (date = new Date()) => {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().split('T')[0];
+};
 
+const getPastDateString = (daysAgo) => {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().split('T')[0];
+};
 
 export default function SupervisorDashboard() {
   const navigate = useNavigate();
@@ -317,7 +325,7 @@ export default function SupervisorDashboard() {
   }, [tab, scanMode]);
 
   // Journal states
-  const [journalDate, setJournalDate] = useState(new Date().toISOString().split('T')[0]);
+  const [journalDate, setJournalDate] = useState(() => getLocalDateString());
   const [journalSession, setJournalSession] = useState(1);
   const [journalSubTab, setJournalSubTab] = useState(0); // 0 = Scanned, 1 = Remaining
   const [assignedWorkers, setAssignedWorkers] = useState([]);
@@ -484,6 +492,8 @@ export default function SupervisorDashboard() {
     setScanResult(null);
     setQrCode(''); // Clear the input field immediately
     
+    const todayStr = getLocalDateString();
+
     if (!navigator.onLine) {
       try {
         const cached = localStorage.getItem(`cached_workers_${params.supervisorId}`);
@@ -493,7 +503,7 @@ export default function SupervisorDashboard() {
 
         const isDuplicate = params.pendingScans.some(
           p => (p.qrCode === cleanCode || (worker && p.qrCode === worker.qrCode)) &&
-          p.date === params.journalDate &&
+          p.date === todayStr &&
           p.session === Number(params.session)
         );
         if (isDuplicate) {
@@ -505,7 +515,7 @@ export default function SupervisorDashboard() {
           qrCode: worker ? worker.qrCode : cleanCode,
           status: params.status,
           session: Number(params.session),
-          date: params.journalDate,
+          date: todayStr,
           note: null,
           workerName,
           passport: worker ? worker.passport : '',
@@ -544,7 +554,7 @@ export default function SupervisorDashboard() {
         qrCode: cleanCode,
         status: params.status,
         session: Number(params.session),
-        date: params.journalDate
+        date: todayStr
       });
       const data = res.data?.data || { success: true, message: res.data?.message || 'Успешно!' };
       setScanResult(data);
@@ -812,7 +822,7 @@ export default function SupervisorDashboard() {
             {/* Current parameters chip */}
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
               <Chip
-                label={`Дата: ${formatDate(journalDate)} • Смена: ${SESSION_OPTIONS.find(o => o.value === session)?.label}`}
+                label={`Дата: ${formatDate(getLocalDateString())} • Смена: ${SESSION_OPTIONS.find(o => o.value === session)?.label}`}
                 onClick={() => setSettingsOpen(true)}
                 onDelete={() => setSettingsOpen(true)}
                 deleteIcon={<SettingsIcon sx={{ '&&': { color: '#7b61ff' } }} />}
@@ -1056,8 +1066,23 @@ export default function SupervisorDashboard() {
                 <RefreshIcon sx={{ fontSize: 16 }} />
               </IconButton>
             </Box>
-
-
+            {journalDate !== getLocalDateString() && (
+              <Alert 
+                severity="info" 
+                variant="outlined"
+                sx={{ 
+                  borderRadius: '12px', 
+                  backgroundColor: '#eff6ff', 
+                  borderColor: '#bfdbfe',
+                  color: '#1e40af',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  '& .MuiAlert-icon': { color: '#3b82f6' }
+                }}
+              >
+                Режим просмотра истории. Внесение изменений доступно только для сегодняшнего дня ({formatDate(getLocalDateString())}).
+              </Alert>
+            )}
 
             {/* Date, Shift Select & Subtabs Toggle */}
             <Paper elevation={0} sx={{ p: 2, borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -1067,10 +1092,15 @@ export default function SupervisorDashboard() {
                   type="date"
                   size="small"
                   fullWidth
-                  disabled
+                  slotProps={{
+                    htmlInput: {
+                      min: getPastDateString(6),
+                      max: getLocalDateString()
+                    }
+                  }}
                   value={journalDate}
                   onChange={(e) => setJournalDate(e.target.value)}
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#f1f5f9' } }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', bgcolor: '#fff' } }}
                 />
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -1204,6 +1234,10 @@ export default function SupervisorDashboard() {
                         <ListItem
                           button
                           onClick={() => {
+                            if (journalDate !== getLocalDateString()) {
+                              toastBus.show('Отмечать посещаемость можно только за сегодняшний день!', 'warning');
+                              return;
+                            }
                             setSelectedWorker(item);
                             setSelectedReason('ABSENT');
                             setCustomReason('');
