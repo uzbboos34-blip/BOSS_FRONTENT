@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Typography, List, ListItem, ListItemButton, ListItemIcon, Divider, Button, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { NavLink, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -18,6 +18,9 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { toastBus } from '../../utils/toast';
 
 const menuItems = [
   { text: 'Главная', icon: <DashboardIcon />, path: '/dashboard' },
@@ -33,6 +36,83 @@ export default function Sidebar({ openSettings, setOpenSettings, isSidebarCollap
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const collapsed = isMobile ? false : isSidebarCollapsed;
+
+  const [updateAvailable, setUpdateAvailable] = useState(localStorage.getItem('updateAvailable') === 'true');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [appVersion, setAppVersion] = useState('...');
+
+  useEffect(() => {
+    // Determine active version
+    if (Capacitor.isNativePlatform()) {
+      CapacitorUpdater.current().then(info => {
+        setAppVersion(info?.bundle?.version || '1.0.0');
+      }).catch(() => {
+        setAppVersion('1.0.0');
+      });
+    } else {
+      fetch('/version.json')
+        .then(res => res.json())
+        .then(data => setAppVersion(data.version || 'Web'))
+        .catch(() => setAppVersion('Web'));
+    }
+
+    const handleUpdateEvent = () => {
+      setUpdateAvailable(true);
+    };
+
+    window.addEventListener('appUpdateAvailable', handleUpdateEvent);
+    return () => {
+      window.removeEventListener('appUpdateAvailable', handleUpdateEvent);
+    };
+  }, []);
+
+  const handleApplyUpdate = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      toastBus.show('Обновление работает только в мобильном приложении', 'warning');
+      return;
+    }
+    if (isUpdating) return;
+    setIsUpdating(true);
+    toastBus.show('Загрузка обновления, пожалуйста, подождите...', 'info');
+    try {
+      const latestVersion = localStorage.getItem('latestVersion');
+      const downloadUrl = localStorage.getItem('updateUrl');
+
+      if (!downloadUrl || !latestVersion) {
+        toastBus.show('Данные об обновлении не найдены. Пожалуйста, перезапустите приложение.', 'error');
+        setIsUpdating(false);
+        return;
+      }
+
+      console.log(`[LiveUpdate] Downloading manual update: ${latestVersion} from ${downloadUrl}`);
+      const versionObj = await CapacitorUpdater.download({
+        url: downloadUrl,
+        version: latestVersion
+      });
+
+      console.log('[LiveUpdate] Setting manual update...');
+      await CapacitorUpdater.set(versionObj);
+
+      toastBus.show('Система успешно обновлена! Вам необходимо войти заново.', 'success');
+
+      // Clear local storage and log out
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('updateAvailable');
+      localStorage.removeItem('latestVersion');
+      localStorage.removeItem('updateUrl');
+
+      // Wait 1.5s then reload to Login screen
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+
+    } catch (e) {
+      console.error(e);
+      toastBus.show('Произошла ошибка при обновлении: ' + (e.message || e), 'error');
+      setIsUpdating(false);
+    }
+  };
 
   const tokenVal = localStorage.getItem('token');
   let role = '';
@@ -252,9 +332,41 @@ export default function Sidebar({ openSettings, setOpenSettings, isSidebarCollap
             </Box>
           )}
 
+          {/* Update Button */}
+          {updateAvailable && (
+            <Box sx={{ p: 2, mt: 'auto', borderTop: '1px solid #f3f4f6' }}>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={handleApplyUpdate}
+                  disabled={isUpdating}
+                  sx={{
+                    ...defaultStyles,
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    px: collapsed ? 0 : 2,
+                    minHeight: 52,
+                    color: '#7b61ff',
+                    backgroundColor: '#f5f3ff',
+                    '&:hover': { backgroundColor: '#ede9fe', color: '#6a50e8' },
+                    '& .MuiListItemIcon-root': { color: '#7b61ff' }
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: collapsed ? 0 : 36, justifyContent: 'center' }}>
+                    <BoltIcon sx={{ fontSize: 22 }} />
+                  </ListItemIcon>
+                  {!collapsed && (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <Typography sx={{ fontSize: '0.9rem', fontWeight: 700 }}>Доступно обновление</Typography>
+                      <Typography sx={{ fontSize: '0.72rem', color: '#8b5cf6' }}>v{appVersion} обновить</Typography>
+                    </Box>
+                  )}
+                </ListItemButton>
+              </ListItem>
+            </Box>
+          )}
+
           {/* Logout Button */}
           {!isStudent && (
-            <Box sx={{ p: 2, mt: 'auto', borderTop: '1px solid #f3f4f6' }}>
+            <Box sx={{ p: 2, mt: updateAvailable ? 0 : 'auto', borderTop: updateAvailable ? 'none' : '1px solid #f3f4f6' }}>
               <ListItem disablePadding>
                 <ListItemButton
                   onClick={handleLogout}

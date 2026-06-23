@@ -42,23 +42,16 @@ export function useLiveUpdate() {
         console.log(`[LiveUpdate] Current version: ${currentVersion}, Latest version: ${latestVersion}`);
 
         if (currentVersion !== latestVersion) {
-          console.log(`[LiveUpdate] New update detected! Downloading ${latestVersion} from ${downloadUrl}`);
-          
-          // 5. Download the update zip bundle
-          const versionObj = await CapacitorUpdater.download({
-            url: downloadUrl,
-            version: latestVersion
-          });
-
-          console.log('[LiveUpdate] Download completed. Setting update...', versionObj);
-
-          // 6. Set the downloaded version to be active.
-          // Because we configured setDelay({ kind: 'background' }), the app will NOT reload immediately.
-          // It will reload and apply the update next time the user backgrounds or restarts the app.
-          await CapacitorUpdater.set(versionObj);
-          console.log('[LiveUpdate] Update successfully queued for next background/restart');
+          console.log(`[LiveUpdate] New update detected! Saving metadata: ${latestVersion}`);
+          localStorage.setItem('updateAvailable', 'true');
+          localStorage.setItem('latestVersion', latestVersion);
+          localStorage.setItem('updateUrl', downloadUrl);
+          window.dispatchEvent(new Event('appUpdateAvailable'));
         } else {
           console.log('[LiveUpdate] App is up to date.');
+          localStorage.removeItem('updateAvailable');
+          localStorage.removeItem('latestVersion');
+          localStorage.removeItem('updateUrl');
         }
       } catch (error) {
         console.error('[LiveUpdate] Error checked or applying live update:', error);
