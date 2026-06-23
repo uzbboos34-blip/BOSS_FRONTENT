@@ -189,8 +189,8 @@ async function responseError(error) {
   if (status === 401 && config && !config._retry) {
     if (config.url?.includes('auth/refresh')) {
       clearSession();
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      if (!window.location.pathname.includes('/login') && window.location.pathname !== '/') {
+        window.location.href = '/';
       }
       return Promise.reject(error);
     }
@@ -200,8 +200,8 @@ async function responseError(error) {
 
     if (!refreshToken) {
       clearSession();
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      if (!window.location.pathname.includes('/login') && window.location.pathname !== '/') {
+        window.location.href = '/';
       }
       error.userMessage = translateError(error);
       return Promise.reject(error);
@@ -245,8 +245,8 @@ async function responseError(error) {
       processQueue(refreshError, null);
       isRefreshing = false;
       clearSession();
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      if (!window.location.pathname.includes('/login') && window.location.pathname !== '/') {
+        window.location.href = '/';
       }
       return Promise.reject(refreshError);
     }

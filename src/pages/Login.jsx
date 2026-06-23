@@ -262,11 +262,11 @@ export default function Login() {
 
       setTimeout(() => {
         if (role === 'PLATFORM_SUPER_ADMIN') {
-          window.location.href = '/platform';
+          navigate('/platform', { replace: true });
         } else if (role === 'SUPERVISOR') {
-          window.location.href = '/supervisor/dashboard';
+          navigate('/supervisor/dashboard', { replace: true });
         } else {
-          window.location.href = '/dashboard';
+          navigate('/dashboard', { replace: true });
         }
       }, 800);
 

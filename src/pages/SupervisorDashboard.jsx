@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Capacitor } from '@capacitor/core';
@@ -57,13 +58,14 @@ const scaleUp = keyframes`
 
 
 export default function SupervisorDashboard() {
+  const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
   useEffect(() => {
     if (!token || token === 'undefined') {
-      window.location.href = '/login';
+      navigate('/login', { replace: true });
     }
-  }, [token]);
+  }, [token, navigate]);
 
   const [tab, setTab] = useState(() => {
     const saved = localStorage.getItem('supervisor_active_tab');
@@ -142,7 +144,7 @@ export default function SupervisorDashboard() {
 
       // Wait 1.5s then reload to Login screen
       setTimeout(() => {
-        window.location.href = '/login';
+        navigate('/login', { replace: true });
       }, 1500);
 
     } catch (e) {
@@ -332,11 +334,10 @@ export default function SupervisorDashboard() {
 
   const tokenVal = () => localStorage.getItem('token');
 
-  // Decode JWT safely
   useEffect(() => {
     const token = tokenVal();
     if (!token || token === 'undefined') {
-      window.location.href = '/login';
+      navigate('/login', { replace: true });
       return;
     }
     try {
@@ -345,9 +346,9 @@ export default function SupervisorDashboard() {
       setSupervisorName(payload.fullName || 'Супервайзер');
     } catch (e) {
       console.error('Failed to parse token payload:', e);
-      window.location.href = '/login';
+      navigate('/login', { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   // Auto detect current session based on time
   useEffect(() => {
@@ -650,7 +651,7 @@ export default function SupervisorDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    navigate('/login', { replace: true });
   };
 
   const formatDate = (dateStr) => {
