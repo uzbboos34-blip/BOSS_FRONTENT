@@ -163,16 +163,7 @@ export default function SupervisorDashboard() {
   const [pendingScans, setPendingScans] = useState([]);
   const [syncingOffline, setSyncingOffline] = useState(false);
 
-  // Keep the scanParamsRef always updated with latest states to prevent stale closure issues in the scanner callback
-  scanParamsRef.current = {
-    submittingScan,
-    cooldownActive,
-    session,
-    status,
-    journalDate,
-    pendingScans,
-    supervisorId
-  };
+
 
   // Load pending scans from local storage
   const loadPendingScans = () => {
@@ -370,6 +361,19 @@ export default function SupervisorDashboard() {
     setSession(currentSession);
     setJournalSession(currentSession);
   }, []);
+
+  // Keep the scanParamsRef always updated with latest states to prevent stale closure issues in the scanner callback
+  useEffect(() => {
+    scanParamsRef.current = {
+      submittingScan,
+      cooldownActive,
+      session,
+      status,
+      journalDate,
+      pendingScans,
+      supervisorId
+    };
+  });
 
   // Fetch journal data
   const fetchJournal = async () => {
