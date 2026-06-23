@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { toastBus } from '../utils/toast';
 
 export function useLiveUpdate() {
   useEffect(() => {
@@ -12,16 +13,23 @@ export function useLiveUpdate() {
     const checkUpdates = async () => {
       try {
         // 1. Notify that the web application is successfully loaded.
-        // This is crucial to prevent rollback to previous version!
-        await CapacitorUpdater.notifyAppReady();
-        console.log('[LiveUpdate] App ready notified');
+        try {
+          await CapacitorUpdater.notifyAppReady();
+          console.log('[LiveUpdate] App ready notified');
+        } catch (readyErr) {
+          console.warn('[LiveUpdate] notifyAppReady warning:', readyErr);
+        }
 
         // 2. Set delay conditions so that updates are applied when the app is in the background
-        await CapacitorUpdater.setDelay({ kind: 'background' });
-        console.log('[LiveUpdate] Delay set to background');
+        try {
+          await CapacitorUpdater.setDelay({ kind: 'background' });
+          console.log('[LiveUpdate] Delay set to background');
+        } catch (delayErr) {
+          console.warn('[LiveUpdate] setDelay warning:', delayErr);
+        }
 
-        // 3. Fetch version metadata from Vercel
-        const response = await fetch('https://boss-frontent.vercel.app/version.json', {
+        // 3. Fetch version metadata from Vercel (prevent caching)
+        const response = await fetch(`https://boss-frontent.vercel.app/version.json?t=${Date.now()}`, {
           headers: {
             'Cache-Control': 'no-cache'
           }
@@ -37,9 +45,18 @@ export function useLiveUpdate() {
         const downloadUrl = data.url;
 
         // 4. Get active bundle info
-        const current = await CapacitorUpdater.current();
-        const currentVersion = current?.bundle?.version;
+        let currentVersion = 'builtin';
+        try {
+          const current = await CapacitorUpdater.current();
+          currentVersion = current?.bundle?.version || 'builtin';
+        } catch (currentErr) {
+          console.warn('[LiveUpdate] Failed to get current bundle version:', currentErr);
+        }
+
         console.log(`[LiveUpdate] Current version: ${currentVersion}, Latest version: ${latestVersion}`);
+        
+        // Show temporary diagnostic toast to help resolve update issues
+        toastBus.show(`[Тест] Версия APK: ${currentVersion}, На сервере: ${latestVersion}`, 'info');
 
         if (currentVersion !== latestVersion) {
           console.log(`[LiveUpdate] New update detected! Saving metadata: ${latestVersion}`);
@@ -55,6 +72,7 @@ export function useLiveUpdate() {
         }
       } catch (error) {
         console.error('[LiveUpdate] Error checked or applying live update:', error);
+        toastBus.show('[LiveUpdate Xatolik]: ' + error.message, 'error');
       }
     };
 
