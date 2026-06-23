@@ -28,19 +28,25 @@ export function useLiveUpdate() {
           console.warn('[LiveUpdate] setDelay warning:', delayErr);
         }
 
-        // 3. Fetch version metadata from Vercel (prevent caching)
-        const response = await fetch(`https://boss-frontent.vercel.app/version.json?t=${Date.now()}`, {
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        });
+        // 3. Fetch version metadata via backend proxy to bypass WebView CORS policy
+        const backendUrl = Capacitor.isNativePlatform()
+          ? 'https://boss-backend-glek.onrender.com'
+          : (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== '/'
+              ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '')
+              : (import.meta.env.DEV ? '' : 'https://boss-backend-glek.onrender.com'));
+
+        const response = await fetch(`${backendUrl}/api/v1/auth/app-version?t=${Date.now()}`);
 
         if (!response.ok) {
-          console.warn('[LiveUpdate] Failed to fetch version.json from Vercel');
+          console.warn('[LiveUpdate] Failed to fetch version info from backend');
           return;
         }
 
         const data = await response.json();
+        if (!data.success) {
+          console.warn('[LiveUpdate] Backend proxy returned error:', data.message);
+          return;
+        }
         const latestVersion = data.version;
         const downloadUrl = data.url;
 

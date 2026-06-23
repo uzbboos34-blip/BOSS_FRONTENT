@@ -65,10 +65,6 @@ export default function SupervisorDashboard() {
     }
   }, [token]);
 
-  if (!token || token === 'undefined') {
-    return null;
-  }
-
   const [tab, setTab] = useState(() => {
     const saved = localStorage.getItem('supervisor_active_tab');
     return saved !== null ? Number(saved) : 0;
@@ -694,6 +690,10 @@ export default function SupervisorDashboard() {
     const opt = STATUS_OPTIONS.find(o => o.value === statusVal);
     return opt ? opt.bg : '#f3f4f6';
   };
+
+  if (!token || token === 'undefined') {
+    return null;
+  }
 
   return (
     <Box sx={{

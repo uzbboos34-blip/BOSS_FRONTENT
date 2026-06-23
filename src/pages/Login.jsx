@@ -262,13 +262,11 @@ export default function Login() {
 
       setTimeout(() => {
         if (role === 'PLATFORM_SUPER_ADMIN') {
-          navigate('/platform');
-        } else if (role === 'TEACHER') {
-          navigate('/groups');
-        } else if (role === 'STUDENT') {
-          navigate('/student/groups');
+          window.location.href = '/platform';
+        } else if (role === 'SUPERVISOR') {
+          window.location.href = '/supervisor/dashboard';
         } else {
-          navigate('/dashboard');
+          window.location.href = '/dashboard';
         }
       }, 800);
 
