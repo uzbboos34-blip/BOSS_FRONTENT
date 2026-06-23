@@ -11,11 +11,14 @@ import PlatformAdmin from './pages/PlatformAdmin';
 import SupervisorDashboard from './pages/SupervisorDashboard';
 import { UploadProvider } from './context/UploadContext';
 import { useLiveUpdate } from './hooks/useLiveUpdate';
+import './utils/toast';
+import GlobalToast from './components/GlobalToast';
 
 function App() {
   useLiveUpdate();
   return (
     <BrowserRouter>
+      <GlobalToast />
       <UploadProvider>
         <Routes>
           {/* Public Routes */}

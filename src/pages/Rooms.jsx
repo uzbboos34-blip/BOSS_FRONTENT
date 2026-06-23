@@ -13,6 +13,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import EditIcon from '@mui/icons-material/Edit';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -58,6 +59,8 @@ export default function Rooms() {
   const [allWorkers, setAllWorkers] = useState([]);
   const [selectedWorkers, setSelectedWorkers] = useState([]);
   const [workerSearchQuery, setWorkerSearchQuery] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [checkToEdit, setCheckToEdit] = useState(null);
 
   const filteredWorkersForSelection = allWorkers.filter(w => {
     const term = workerSearchQuery.toLowerCase();
@@ -133,6 +136,8 @@ export default function Rooms() {
   }, []);
 
   function openCreateDrawer() {
+    setEditMode(false);
+    setCheckToEdit(null);
     // Default payment date is today
     const todayStr = new Date().toISOString().split('T')[0];
     setForm({ passport: '', paidAt: todayStr, numberOfMonths: 1 });
@@ -142,7 +147,39 @@ export default function Rooms() {
     setIsDrawerOpen(true);
   }
 
+  function openEditDrawer(check) {
+    setEditMode(true);
+    setCheckToEdit(check.id);
+    const dateStr = check.paidAt ? new Date(check.paidAt).toISOString().split('T')[0] : '';
+    setForm({
+      passport: check.worker?.passport || '',
+      paidAt: dateStr,
+      numberOfMonths: check.numberOfMonths || 1
+    });
+    setSelectedWorkers([check.worker].filter(Boolean));
+    setIsDrawerOpen(true);
+  }
+
   async function handleSubmit() {
+    if (editMode) {
+      if (!form.paidAt) {
+        alert('Пожалуйста, выберите дату оплаты');
+        return;
+      }
+      try {
+        await api.put(`/api/v1/check/${checkToEdit}`, {
+          paidAt: new Date(form.paidAt).toISOString(),
+          numberOfMonths: Number(form.numberOfMonths)
+        });
+        alert('Чек успешно обновлен');
+        getChecks();
+        setIsDrawerOpen(false);
+      } catch (e) {
+        alert('Ошибка: ' + (e.response?.data?.message || 'Не удалось обновить чек'));
+      }
+      return;
+    }
+
     if (selectedWorkers.length === 0) {
       alert('Пожалуйста, выберите хотя бы одного рабочего');
       return;
@@ -468,6 +505,9 @@ export default function Rooms() {
                   <TableCell sx={{ fontSize: '0.85rem', fontWeight: 700 }} align="center">{check.numberOfMonths} мес.</TableCell>
                   <TableCell sx={{ fontSize: '0.85rem', color: '#64748b' }}>{check.createdBy || 'Система'}</TableCell>
                   <TableCell>
+                    <IconButton size="small" onClick={() => openEditDrawer(check)} sx={{ color: '#9ca3af', '&:hover': { color: '#7b61ff' }, mr: 1 }}>
+                      <EditIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
                     <IconButton size="small" onClick={() => triggerDelete(check.id)} sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
                       <DeleteIcon sx={{ fontSize: 18 }} />
                     </IconButton>
@@ -505,9 +545,14 @@ export default function Rooms() {
                     <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111827' }}>
                       {check.worker?.fullName || '—'}
                     </Typography>
-                    <IconButton size="small" onClick={() => triggerDelete(check.id)} sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
-                      <DeleteIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
+                    <Box>
+                      <IconButton size="small" onClick={() => openEditDrawer(check)} sx={{ color: '#9ca3af', '&:hover': { color: '#7b61ff' }, mr: 0.5 }}>
+                        <EditIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => triggerDelete(check.id)} sx={{ color: '#9ca3af', '&:hover': { color: '#ef4444' } }}>
+                        <DeleteIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Box>
                   </Box>
 
                   {/* Grid details */}
@@ -606,108 +651,128 @@ export default function Rooms() {
       >
         <Box sx={{ p: { xs: 3, sm: 4 }, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>Регистрация чеков</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              {editMode ? 'Редактирование чека' : 'Регистрация чеков'}
+            </Typography>
             <IconButton onClick={() => setIsDrawerOpen(false)}>
               <CloseIcon />
             </IconButton>
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-            Выберите рабочих и введите данные платежного чека патентного налога.
+            {editMode 
+              ? 'Измените данные платежного чека патентного налога.' 
+              : 'Выберите рабочих и введите данные платежного чека патентного налога.'}
           </Typography>
 
           <Stack spacing={3} sx={{ flex: 1 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
-                Выберите рабочих (одного или нескольких) *
-              </Typography>
-              
-              <TextField
-                size="small"
-                fullWidth
-                placeholder="Поиск по имени, паспорту, группе..."
-                value={workerSearchQuery}
-                onChange={(e) => setWorkerSearchQuery(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#fff' } }}
-              />
-
-              <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
-                <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600 }}>
-                  Выбрано: {selectedWorkers.length} из {allWorkers.length}
+            {editMode ? (
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151', mb: 1 }}>
+                  Рабочий
                 </Typography>
-                <Stack direction="row" spacing={1}>
-                  <Button
-                    size="small"
-                    onClick={handleSelectAllFiltered}
-                    sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#7b61ff', fontWeight: 700 }}
-                  >
-                    Выбрать все
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={handleClearSelection}
-                    sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}
-                  >
-                    Сбросить
-                  </Button>
-                </Stack>
-              </Stack>
-
-              <Box sx={{
-                border: '1px solid #e5e7eb',
-                borderRadius: '16px',
-                maxHeight: 280,
-                overflowY: 'auto',
-                bgcolor: '#f9fafb',
-                p: 1
-              }}>
-                {loadingWorkers ? (
-                  <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
-                    Загрузка списка рабочих...
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: '12px', bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>
+                    {selectedWorkers[0]?.fullName || '—'}
                   </Typography>
-                ) : filteredWorkersForSelection.length === 0 ? (
-                  <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
-                    Рабочие не найдены
+                  <Typography sx={{ fontSize: '0.78rem', color: '#64748b', mt: 0.5, fontFamily: 'monospace' }}>
+                    Паспорт: {form.passport || '—'}
                   </Typography>
-                ) : (
-                  filteredWorkersForSelection.map((w) => {
-                    const isChecked = selectedWorkers.some(sw => sw.id === w.id);
-                    return (
-                      <Box
-                        key={w.id}
-                        onClick={() => handleToggleWorker(w)}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                          p: 1,
-                          borderRadius: '10px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s',
-                          '&:hover': { bgcolor: '#f3f4f6' },
-                          mb: 0.5,
-                          '&:last-child': { mb: 0 }
-                        }}
-                      >
-                        <Checkbox
-                          size="small"
-                          checked={isChecked}
-                          onChange={() => {}} // Event handled by parent Box onClick
-                          sx={{ p: 0.5, '&.Mui-checked': { color: '#7b61ff' } }}
-                        />
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', noWrap: true }}>
-                            {w.fullName}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.72rem', color: '#6b7280' }}>
-                            {w.passport || 'Без паспорта'} {w.department ? `· ${w.department}` : ''} {w.teamDivision ? `· ${w.teamDivision}` : ''}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    );
-                  })
-                )}
+                </Paper>
               </Box>
-            </Box>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#374151' }}>
+                  Выберите рабочих (одного или нескольких) *
+                </Typography>
+                
+                <TextField
+                  size="small"
+                  fullWidth
+                  placeholder="Поиск по имени, паспорту, группе..."
+                  value={workerSearchQuery}
+                  onChange={(e) => setWorkerSearchQuery(e.target.value)}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#fff' } }}
+                />
+
+                <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
+                  <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 600 }}>
+                    Выбрано: {selectedWorkers.length} из {allWorkers.length}
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      onClick={handleSelectAllFiltered}
+                      sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#7b61ff', fontWeight: 700 }}
+                    >
+                      Выбрать все
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={handleClearSelection}
+                      sx={{ textTransform: 'none', fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}
+                    >
+                      Сбросить
+                    </Button>
+                  </Stack>
+                </Stack>
+
+                <Box sx={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '16px',
+                  maxHeight: 280,
+                  overflowY: 'auto',
+                  bgcolor: '#f9fafb',
+                  p: 1
+                }}>
+                  {loadingWorkers ? (
+                    <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
+                      Загрузка списка рабочих...
+                    </Typography>
+                  ) : filteredWorkersForSelection.length === 0 ? (
+                    <Typography sx={{ p: 2, textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem' }}>
+                      Рабочие не найдены
+                    </Typography>
+                  ) : (
+                    filteredWorkersForSelection.map((w) => {
+                      const isChecked = selectedWorkers.some(sw => sw.id === w.id);
+                      return (
+                        <Box
+                          key={w.id}
+                          onClick={() => handleToggleWorker(w)}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            p: 1,
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                            '&:hover': { bgcolor: '#f3f4f6' },
+                            mb: 0.5,
+                            '&:last-child': { mb: 0 }
+                          }}
+                        >
+                          <Checkbox
+                            size="small"
+                            checked={isChecked}
+                            onChange={() => {}} // Event handled by parent Box onClick
+                            sx={{ p: 0.5, '&.Mui-checked': { color: '#7b61ff' } }}
+                          />
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', noWrap: true }}>
+                              {w.fullName}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                              {w.passport || 'Без паспорта'} {w.department ? `· ${w.department}` : ''} {w.teamDivision ? `· ${w.teamDivision}` : ''}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      );
+                    })
+                  )}
+                </Box>
+              </Box>
+            )}
 
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 600, mb: 1, color: '#374151' }}>
@@ -776,7 +841,7 @@ export default function Rooms() {
                 '&:hover': { backgroundColor: '#6a50e8' }
               }}
             >
-              Зарегистрировать
+              {editMode ? 'Сохранить' : 'Зарегистрировать'}
             </Button>
           </Stack>
         </Box>
